@@ -30,6 +30,9 @@
 
 ;;; Code:
 
+(require 'dash)
+(require 'dash-functional)
+(require 'helm)
 (require 'esi-kaldi)
 
 (defcustom esi--arecord-args (list "-f" "S16_LE" "-r" "8000" "-c" "1" "-d" "600")
@@ -63,6 +66,22 @@ duration limit so that an accident doesn't throw us out of memory.")
   (esi-start-recording)
   (read-string "Press RET when done speaking ")
   (esi-stop-recording))
+
+;;;###autoload
+(defun esi-insert-text (transcriber)
+  "Insert transcription at point, selecting among ASR
+alternatives."
+  (interactive (list #'esi-kaldi-transcribe))
+  (let ((texts  (->> (funcall transcriber (esi-record))
+                   (alist-get 'results)
+                   car
+                   (alist-get 'alternatives)
+                   (mapcar (-cut alist-get 'transcript <>)))))
+    (helm :sources (helm-build-sync-source "alternatives"
+                     :candidates texts
+                     :action `(("Insert" . ,#'insert)))
+          :buffer "*helm esi*"
+          :prompt "Insert : ")))
 
 (provide 'esi)
 
