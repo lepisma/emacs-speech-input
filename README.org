@@ -13,7 +13,7 @@ The API will cover pieces like:
 For now, I am trying to set up a regular command-and-control stuff based on 4th
 method using a kaldi backend.
 
-A basic method working get utterance transcription is:
+A basic method working to get utterance transcription is:
 
 #+begin_src emacs-lisp :exports both :results value
 (esi-kaldi-transcribe (esi-record))
