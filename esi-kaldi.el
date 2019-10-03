@@ -50,7 +50,8 @@
          (audio-data (esi-kaldi-encoder-wav wavfile))
          (data-json (shell-quote-argument (json-encode `((audio . ((content . ,audio-data))) ,@esi-kaldi-serve-config)))))
     (json-parse-string (shell-command-to-string (format "echo %s | evans %s" data-json args))
-                       :object-type 'alist)))
+                       :object-type 'alist
+                       :array-type 'list)))
 
 (provide 'esi-kaldi)
 

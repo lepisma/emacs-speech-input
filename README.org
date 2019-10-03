@@ -12,3 +12,12 @@ The API will cover pieces like:
 
 For now, I am trying to set up a regular command-and-control stuff based on 4th
 method using a kaldi backend.
+
+A basic method working get utterance transcription is:
+
+#+begin_src emacs-lisp :export both :results value
+(esi-kaldi-transcribe (esi-record))
+#+end_src
+
+#+RESULTS:
+| results | ((alternatives ((transcript . hello world) (confidence . 0.9549557) (amScore . -93.48753) (lmScore . 48.08582)) ((transcript . allow world) (confidence . 0.9546335) (amScore . -95.37911) (lmScore . 51.637577)) ((transcript . allow word) (confidence . 0.9543697) (amScore . -96.77035) (lmScore . 54.479374)))) |
