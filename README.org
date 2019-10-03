@@ -1,0 +1,14 @@
+#+TITLE: Emacs Speech Input
+
+Personal set of tools for involving speech while working with Emacs. Once
+stable, this place should provide a consistent API involving various kinds of
+speech based acts and delegate to various backends.
+
+The API will cover pieces like:
+1. Voice activity detection
+2. Hot word detection
+3. Speaker Verification
+4. Regular utterance transcription
+
+For now, I am trying to set up a regular command-and-control stuff based on 4th
+method using a kaldi backend.
