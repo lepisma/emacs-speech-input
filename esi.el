@@ -32,6 +32,38 @@
 
 (require 'esi-kaldi)
 
+(defcustom esi--arecord-args (list "-f" "S16_LE" "-r" "8000" "-c" "1" "-d" "600")
+  "Arguments to send to arecord while recording. We put a max
+duration limit so that an accident doesn't throw us out of memory.")
+
+(defvar esi--arecord-proc nil
+  "Variable holding the process used for recording.")
+
+(defun esi-start-recording ()
+  "Start recording audio."
+  (let* ((tmp-file (make-temp-file "esi-raw-audio"))
+         (args (append esi--arecord-args (list ">" (shell-quote-argument tmp-file)))))
+    (setq esi--arecord-proc (start-process-shell-command "arecord" nil (string-join (cons "arecord" args) " ")))
+    (process-put esi--arecord-proc 'output-file tmp-file)))
+
+(defun esi-stop-recording ()
+  "Stop recording and save wav output in OUTPUT-FILE."
+  ;; NOTE: arecord takes kill (almost) gracefully but leaves the recording time
+  ;;       wrong, so we fix it manually using sox
+  (kill-process esi--arecord-proc)
+  (let ((tmp-file (process-get esi--arecord-proc 'output-file))
+        (processed-file (concat (make-temp-file "esi-audio") ".wav")))
+    (call-process "sox" nil nil nil "--ignore-length" tmp-file processed-file)
+    (setq esi--arecord-proc nil)
+    (delete-file tmp-file)
+    processed-file))
+
+(defun esi-input-audio ()
+  "Ask for audio from user and return saved file path."
+  (esi-start-recording)
+  (read-string "Press RET when done speaking ")
+  (esi-stop-recording))
+
 (provide 'esi)
 
 ;;; esi.el ends here
