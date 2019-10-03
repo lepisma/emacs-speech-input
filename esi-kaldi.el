@@ -1,16 +1,12 @@
-;;; esi.el --- Emacs Speech Input -*- lexical-binding: t; -*-
+;;; esi-kaldi.el --- Kaldi based input mechanism -*- lexical-binding: t; -*-
 
 ;; Copyright (c) 2019 Abhinav Tushar
 
 ;; Author: Abhinav Tushar <lepisma@fastmail.com>
-;; Version: 0.0.1
-;; Package-Requires: ((emacs "26"))
-;; Keywords: tools
-;; URL: https://github.com/lepisma/emacs-speech-input
 
 ;;; Commentary:
 
-;; Emacs Speech Input
+;; Kaldi based input mechanism
 ;; This file is not a part of GNU Emacs.
 
 ;;; License:
@@ -30,8 +26,8 @@
 
 ;;; Code:
 
-(require 'esi-kaldi)
 
-(provide 'esi)
 
-;;; esi.el ends here
+(provide 'esi-kaldi)
+
+;;; esi-kaldi.el ends here
