@@ -6,7 +6,7 @@
 
 ;;; Commentary:
 
-;; Kaldi based input mechanism
+;; Kaldi based input mechanism following kaldi-serve's protobuf.
 ;; This file is not a part of GNU Emacs.
 
 ;;; License:
@@ -26,7 +26,31 @@
 
 ;;; Code:
 
+;; HACK: We are using various command line tools to stitch things together for
+;;       now. This will change once the outer API becomes more clear to me.
 
+(defcustom esi-kaldi-serve-proto nil
+  "Path to the protobuf file describing kaldi-serve service.")
+
+(defcustom esi-kaldi-serve-config `((config . ((max_alternatives . 10)
+                                               (model . "general")
+                                               (language_code . "en"))))
+  "Extra config to be passed in grpc requests.")
+
+(defun esi-kaldi-encoder-wav (wavfile)
+  "Encoder wavfile to base64 format so that it could be passed to evans."
+  (with-temp-buffer
+    (insert-file-contents-literally wavfile)
+    (base64-encode-region (point-min) (point-max) t)
+    (buffer-string)))
+
+(defun esi-kaldi-transcribe (wavfile)
+  "Transcribe provided file and return everything else."
+  (let* ((args (format "--package kaldi_serve --service KaldiServe %s --call Recognize --port 5016" esi-kaldi-serve-proto))
+         (audio-data (esi-kaldi-encoder-wav wavfile))
+         (data-json (shell-quote-argument (json-encode `((audio . ((content . ,audio-data))) ,@esi-kaldi-serve-config)))))
+    (json-parse-string (shell-command-to-string (format "echo %s | evans %s" data-json args))
+                       :object-type 'alist)))
 
 (provide 'esi-kaldi)
 
