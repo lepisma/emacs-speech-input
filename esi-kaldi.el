@@ -29,7 +29,9 @@
 ;; HACK: We are using various command line tools to stitch things together for
 ;;       now. This will change once the outer API becomes more clear to me.
 
-(defcustom esi-kaldi-serve-proto nil
+(defconst esi-directory (file-name-directory load-file-name))
+
+(defvar esi-kaldi-serve-proto (expand-file-name "resources/kaldi_serve.proto" esi-directory)
   "Path to the protobuf file describing kaldi-serve service.")
 
 (defcustom esi-kaldi-serve-config `((config . ((max_alternatives . 10)
