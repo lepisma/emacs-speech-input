@@ -58,7 +58,7 @@ duration limit so that an accident doesn't throw us out of memory.")
     (delete-file tmp-file)
     processed-file))
 
-(defun esi-input-audio ()
+(defun esi-record ()
   "Ask for audio from user and return saved file path."
   (esi-start-recording)
   (read-string "Press RET when done speaking ")
