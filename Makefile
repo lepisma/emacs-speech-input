@@ -1,2 +1,2 @@
-esi-core.so: esi-core.o
-	gcc -fPIC -shared -o $@ $<
+esi-core.so: src/esi-core.c
+	gcc -fPIC -shared src/esi-core.c -o esi-core.so
