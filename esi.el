@@ -35,17 +35,17 @@
 (require 'helm)
 (require 'esi-kaldi)
 
-(defcustom esi--arecord-args (list "-f" "S16_LE" "-r" "8000" "-c" "1" "-d" "600")
+(defcustom esi--arecord-args (list "-f" "S16_LE" "-c" "1" "-d" "600")
   "Arguments to send to arecord while recording. We put a max
 duration limit so that an accident doesn't throw us out of memory.")
 
 (defvar esi--arecord-proc nil
   "Variable holding the process used for recording.")
 
-(defun esi-start-recording ()
-  "Start recording audio."
+(defun esi-start-recording (&optional sample-rate)
+  "Start recording audio. SAMPLE-RATE defaults to 8000."
   (let* ((tmp-file (make-temp-file "esi-raw-audio"))
-         (args (append esi--arecord-args (list ">" (shell-quote-argument tmp-file)))))
+         (args (append esi--arecord-args (list "-r" (number-to-string (or sample-rate 8000)) ">" (shell-quote-argument tmp-file)))))
     (setq esi--arecord-proc (start-process-shell-command "arecord" nil (string-join (cons "arecord" args) " ")))
     (process-put esi--arecord-proc 'output-file tmp-file)))
 
@@ -61,9 +61,9 @@ duration limit so that an accident doesn't throw us out of memory.")
       (delete-file tmp-file)
       (buffer-string))))
 
-(defun esi-record ()
+(defun esi-record (&optional sample-rate)
   "Ask for audio from user and return wav bytes."
-  (esi-start-recording)
+  (esi-start-recording sample-rate)
   (read-string "Press RET when done speaking ")
   (esi-stop-recording))
 
