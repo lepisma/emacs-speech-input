@@ -4,9 +4,9 @@
 #include <string.h>
 
 int plugin_is_GPL_compatible;
-const char* esi_core_version = "0.0.1";
+const char *esi_core_version = "0.0.1";
 
-static emacs_value Fesi_core_version (emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
+static emacs_value Fesi_core_version(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
   return env->make_string(env, esi_core_version, strlen(esi_core_version));
 }
 
@@ -18,18 +18,18 @@ static emacs_value make_vector(emacs_env *env, int len, double init) {
 
 typedef struct {
   sf_count_t offset, length;
-	char* data;
+  char *data;
 } VIO_DATA;
 
-static sf_count_t vfget_filelen (void *user_data) {
-  VIO_DATA *vf = (VIO_DATA *) user_data;
-	return vf->length;
+static sf_count_t vfget_filelen(void *user_data) {
+  VIO_DATA *vf = (VIO_DATA *)user_data;
+  return vf->length;
 }
 
-static sf_count_t vfseek (sf_count_t offset, int whence, void *user_data) {
-  VIO_DATA *vf = (VIO_DATA *) user_data;
+static sf_count_t vfseek(sf_count_t offset, int whence, void *user_data) {
+  VIO_DATA *vf = (VIO_DATA *)user_data;
 
-	switch (whence) {
+  switch (whence) {
   case SEEK_SET:
     vf->offset = offset;
     break;
@@ -46,31 +46,31 @@ static sf_count_t vfseek (sf_count_t offset, int whence, void *user_data) {
     break;
   };
 
-	return vf->offset;
+  return vf->offset;
 }
 
-static sf_count_t vfread (void *ptr, sf_count_t count, void *user_data) {
-  VIO_DATA *vf = (VIO_DATA *) user_data;
+static sf_count_t vfread(void *ptr, sf_count_t count, void *user_data) {
+  VIO_DATA *vf = (VIO_DATA *)user_data;
 
-	if (vf->offset + count > vf->length)
-		count = vf->length - vf->offset;
+  if (vf->offset + count > vf->length)
+    count = vf->length - vf->offset;
 
-	memcpy(ptr, vf->data + vf->offset, count);
-	vf->offset += count;
+  memcpy(ptr, vf->data + vf->offset, count);
+  vf->offset += count;
 
-	return count;
+  return count;
 }
 
-static sf_count_t vftell (void *user_data) {
-  VIO_DATA *vf = (VIO_DATA *) user_data;
-	return vf->offset;
+static sf_count_t vftell(void *user_data) {
+  VIO_DATA *vf = (VIO_DATA *)user_data;
+  return vf->offset;
 }
 
-static emacs_value Fwav_to_samples (emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
+static emacs_value Fwav_to_samples(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
   ptrdiff_t buffer_size;
   env->copy_string_contents(env, args[0], NULL, &buffer_size);
 
-  char* buffer = malloc(buffer_size);
+  char *buffer = malloc(buffer_size);
   env->copy_string_contents(env, args[0], buffer, &buffer_size);
 
   VIO_DATA vio_data;
@@ -91,7 +91,7 @@ static emacs_value Fwav_to_samples (emacs_env *env, ptrdiff_t n, emacs_value arg
   sfile = sf_open_virtual(&vio, SFM_READ, &file_info, &vio_data);
 
   sf_count_t frames_count = file_info.frames * file_info.channels;
-  float* frames = malloc(sizeof(float) * frames_count);
+  float *frames = malloc(sizeof(float) * frames_count);
   sf_readf_float(sfile, frames, frames_count);
 
   emacs_value samples = make_vector(env, frames_count, 0);
@@ -106,22 +106,22 @@ static emacs_value Fwav_to_samples (emacs_env *env, ptrdiff_t n, emacs_value arg
   return samples;
 }
 
-static void provide (emacs_env *env, const char *feature) {
+static void provide(emacs_env *env, const char *feature) {
   emacs_value Qfeat = env->intern(env, feature);
   emacs_value Qprovide = env->intern(env, "provide");
-  emacs_value args[] = { Qfeat };
+  emacs_value args[] = {Qfeat};
 
   env->funcall(env, Qprovide, 1, args);
 }
 
-static void bind_function (emacs_env *env, const char *name, emacs_value Sfun) {
+static void bind_function(emacs_env *env, const char *name, emacs_value Sfun) {
   emacs_value Qfset = env->intern(env, "fset");
   emacs_value Qsym = env->intern(env, name);
-  emacs_value args[] = { Qsym, Sfun };
+  emacs_value args[] = {Qsym, Sfun};
   env->funcall(env, Qfset, 2, args);
 }
 
-int emacs_module_init (struct emacs_runtime *ert) {
+int emacs_module_init(struct emacs_runtime *ert) {
   emacs_env *env = ert->get_environment(ert);
 
   emacs_value v_fun = env->make_function(env, 0, 0, Fesi_core_version, "Return version of esi-core.", NULL);
