@@ -50,19 +50,19 @@ duration limit so that an accident doesn't throw us out of memory.")
     (process-put esi--arecord-proc 'output-file tmp-file)))
 
 (defun esi-stop-recording ()
-  "Stop recording and save wav output in OUTPUT-FILE."
+  "Stop recording and return generated wav bytes."
   ;; NOTE: arecord takes kill (almost) gracefully but leaves the recording time
   ;;       wrong, so we fix it manually using sox
   (kill-process esi--arecord-proc)
-  (let ((tmp-file (process-get esi--arecord-proc 'output-file))
-        (processed-file (concat (make-temp-file "esi-audio") ".wav")))
-    (call-process "sox" nil nil nil "--ignore-length" tmp-file processed-file)
-    (setq esi--arecord-proc nil)
-    (delete-file tmp-file)
-    processed-file))
+  (let ((tmp-file (process-get esi--arecord-proc 'output-file)))
+    (with-temp-buffer
+      (call-process "sox" nil t nil "--ignore-length" tmp-file "-V1" "-t" "wav" "-")
+      (setq esi--arecord-proc nil)
+      (delete-file tmp-file)
+      (buffer-string))))
 
 (defun esi-record ()
-  "Ask for audio from user and return saved file path."
+  "Ask for audio from user and return wav bytes."
   (esi-start-recording)
   (read-string "Press RET when done speaking ")
   (esi-stop-recording))

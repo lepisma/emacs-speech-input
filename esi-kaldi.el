@@ -39,17 +39,18 @@
                                                (language_code . "hi"))))
   "Extra config to be passed in grpc requests.")
 
-(defun esi-kaldi-encoder-wav (wavfile)
+(defun esi-kaldi-encode-wav-data (bytes)
   "Encoder wavfile to base64 format so that it could be passed to evans."
   (with-temp-buffer
-    (insert-file-contents-literally wavfile)
+    (set-buffer-multibyte nil)
+    (insert bytes)
     (base64-encode-region (point-min) (point-max) t)
     (buffer-string)))
 
-(defun esi-kaldi-transcribe (wavfile)
+(defun esi-kaldi-transcribe (bytes)
   "Transcribe provided file and return everything else."
   (let* ((args (format "--package kaldi_serve --service KaldiServe %s --call Recognize --port 5016" esi-kaldi-serve-proto))
-         (audio-data (esi-kaldi-encoder-wav wavfile))
+         (audio-data (esi-kaldi-encode-wav-data bytes))
          (data-json (shell-quote-argument (json-encode `((audio . ((content . ,audio-data))) ,@esi-kaldi-serve-config)))))
     (json-parse-string (shell-command-to-string (format "echo %s | evans %s" data-json args))
                        :object-type 'alist
