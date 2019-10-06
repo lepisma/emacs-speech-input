@@ -11,3 +11,4 @@
 *.~undo-tree
 /.ccls-cache
 *.so
+/tests/test-prep
