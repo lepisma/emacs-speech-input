@@ -2,7 +2,9 @@
 #include "sndfile.h"
 #include <stdlib.h>
 #include <string.h>
+
 #include "esi-io.h"
+#include "esi-prep.h"
 
 int plugin_is_GPL_compatible;
 const char *esi_core_version = "0.0.1";
