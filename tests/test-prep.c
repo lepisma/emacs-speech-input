@@ -58,6 +58,7 @@ void test_stft(void **state) {
 }
 
 int main(void) {
+  hanning_window(3);
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_stft),
     cmocka_unit_test(test_window)

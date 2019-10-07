@@ -16,6 +16,37 @@ double* boxcar_window(size_t window_size) {
   return window;
 }
 
+double* linspace(double start, double end, size_t n) {
+  double* items = malloc(sizeof(double) * n);
+  double diff = (end - start) / (n - 1);
+
+  for (size_t i = 0; i < n; i++) {
+    items[i] = start + (i * diff);
+  }
+
+  return items;
+}
+
+double* hanning_window(size_t window_size) {
+  double* window = calloc(window_size, sizeof(double));
+  double* angles = linspace(-M_PI, M_PI, window_size + 1);
+
+  // NOTE: Changing this value should cover hamming too
+  float alpha = 0.5;
+  float coeffs[] = { alpha, 1.0 - alpha };
+
+  for (size_t k = 0; k < 2; k++) {
+    for (size_t i = 0; i < window_size; i++) {
+      window[i] += coeffs[k] * cos(k * angles[i]);
+    }
+  }
+
+  free(angles);
+  // We are keeping the last value allocated. Since the apparent size is
+  // window_size, we don't worry about people peeking at the last cell.
+  return window;
+}
+
 fftw_complex *stft(float *samples, size_t n_samples, size_t n_fft,
                    size_t hop_length, size_t *n_rows, size_t *n_cols) {
   // TODO: Windowing, padding etc.
