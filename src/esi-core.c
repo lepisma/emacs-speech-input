@@ -40,6 +40,42 @@ static emacs_value Fwav_to_samples(emacs_env *env, ptrdiff_t n, emacs_value args
   return vector;
 }
 
+// Create spectrogram matrix (elisp vectors) using the following arguments:
+// - samples (a vector)
+// - n-fft
+// - hop-length
+// - power (defaults to 1)
+static emacs_value Fsamples_to_spectrogram(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
+  size_t n_fft = env->extract_integer(env, args[1]);
+  size_t hop_length = env->extract_integer(env, args[2]);
+  size_t power = n == 3 ? 1 : env->extract_integer(env, args[3]);
+
+  size_t n_samples = env->vec_size(env, args[0]);
+  float* samples = malloc(sizeof(float) * n_samples);
+  for (size_t i = 0; i < n_samples; i++) {
+    samples[i] = env->extract_float(env, env->vec_get(env, args[0], i));
+  }
+
+  size_t n_rows, n_cols;
+  double* sg_matrix = spectrogram(samples, n_samples, n_fft, hop_length, power, &n_rows, &n_cols);
+  emacs_value matrix = make_vector(env, n_rows, 0);
+  for (size_t i = 0; i < n_rows; i++) {
+    emacs_value vector = make_vector(env, n_cols, 0);
+
+    // sg_matrix is row major
+    for (size_t j = 0; j < n_cols; j++) {
+      env->vec_set(env, vector, j, env->make_float(env, sg_matrix[(i * n_cols) + j]));
+    }
+
+    env->vec_set(env, matrix, i, vector);
+  }
+
+  free(samples);
+  free(sg_matrix);
+
+  return matrix;
+}
+
 static void provide(emacs_env *env, const char *feature) {
   emacs_value Qfeat = env->intern(env, feature);
   emacs_value Qprovide = env->intern(env, "provide");
@@ -58,11 +94,18 @@ static void bind_function(emacs_env *env, const char *name, emacs_value Sfun) {
 int emacs_module_init(struct emacs_runtime *ert) {
   emacs_env *env = ert->get_environment(ert);
 
-  emacs_value v_fun = env->make_function(env, 0, 0, Fesi_core_version, "Return version of esi-core.", NULL);
-  bind_function(env, "esi-core-version", v_fun);
+  emacs_value version_fn = env->make_function(env, 0, 0, Fesi_core_version, "Return version of esi-core.", NULL);
+  bind_function(env, "esi-core-version", version_fn);
 
-  emacs_value samp_fun = env->make_function(env, 1, 1, Fwav_to_samples, "Read and return vector of samples from wav bytes", NULL);
-  bind_function(env, "esi-core-wav-to-samples", samp_fun);
+  emacs_value sample_fn = env->make_function(env, 1, 1, Fwav_to_samples, "Read and return vector of samples from wav bytes", NULL);
+  bind_function(env, "esi-core-wav-to-samples", sample_fn);
+
+  emacs_value spectrogram_fn = env->make_function(env, 3, 4,
+                                                 Fsamples_to_spectrogram,
+                                                 "Calculate spectrogram for given samples.\n\n"
+                                                 "\(fn samples-vector n-fft hop-length &optional power)",
+                                                 NULL);
+  bind_function(env, "esi-core-samples-to-spectrogram", spectrogram_fn);
 
   provide(env, "esi-core");
 

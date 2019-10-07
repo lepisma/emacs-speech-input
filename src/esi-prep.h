@@ -115,13 +115,13 @@ fftw_complex *stft(float *samples, size_t n_samples, size_t n_fft,
   return stft_matrix;
 }
 
-double* spectrogram(float* samples, size_t n_samples, size_t n_fft,
-                    size_t hop_length, size_t power) {
-  size_t n_rows, n_cols;
-  fftw_complex* stft_matrix = stft(samples, n_samples, n_fft, hop_length, &n_rows, &n_cols);
-  double* sg_matrix = malloc(n_rows * n_cols * sizeof(double));
+double *spectrogram(float *samples, size_t n_samples, size_t n_fft,
+                    size_t hop_length, size_t power, size_t *n_rows,
+                    size_t *n_cols) {
+  fftw_complex* stft_matrix = stft(samples, n_samples, n_fft, hop_length, n_rows, n_cols);
+  double* sg_matrix = malloc(*n_rows * *n_cols * sizeof(double));
 
-  for (size_t i = 0; i < (n_rows * n_cols); i++) {
+  for (size_t i = 0; i < ((*n_rows) * (*n_cols)); i++) {
     sg_matrix[i] = pow(cabs(stft_matrix[i]), power);
   }
   fftw_free(stft_matrix);
@@ -132,9 +132,9 @@ double* spectrogram(float* samples, size_t n_samples, size_t n_fft,
 // NOTE: For most of the neural network based models, we might just stop here
 //       and won't do the log + dct to get MFCC
 double* melspectrogram(float* samples, size_t n_samples, size_t n_fft,
-                       size_t hop_length) {
+                       size_t hop_length, size_t *n_rows, size_t *n_cols) {
   // NOTE: Default power is 2
-  double* sg_matrix = spectrogram(samples, n_samples, n_fft, hop_length, 2);
+  double* sg_matrix = spectrogram(samples, n_samples, n_fft, hop_length, 2, n_rows, n_cols);
 
   // TODO: Dot with mel filter
 }
