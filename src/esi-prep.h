@@ -1,9 +1,20 @@
-// Audio preprocessing module, replicating a lot of librosa's (Python) API.
+// Audio preprocessing module, replicating a little of librosa's (Python) API.
+#pragma once
 
 #include <complex.h>
 #include <fftw3.h>
 #include <math.h>
 #include <stdlib.h>
+#include <stdint.h>
+
+double* boxcar_window(size_t window_size) {
+  double* window = malloc(sizeof(double) * window_size);
+  for (size_t i = 0; i < window_size; i++) {
+    window[i] = 1.0;
+  }
+
+  return window;
+}
 
 fftw_complex *stft(float *samples, size_t n_samples, size_t n_fft,
                    size_t hop_length, size_t *n_rows, size_t *n_cols) {
@@ -17,9 +28,11 @@ fftw_complex *stft(float *samples, size_t n_samples, size_t n_fft,
   fftw_complex* output = fftw_malloc(n_fft_out * sizeof(fftw_complex));
   fftw_plan plan = fftw_plan_dft_r2c_1d(n_fft, frame, output, FFTW_ESTIMATE);
 
+  double* window = boxcar_window(n_fft);
+
   for (int i = 0; i < n_frames; i++) {
     for (int j = 0; j < n_fft; j++) {
-      frame[j] = samples[j + i * hop_length];
+      frame[j] = samples[j + i * hop_length] * window[j];
     }
 
     fftw_execute(plan);
@@ -32,6 +45,7 @@ fftw_complex *stft(float *samples, size_t n_samples, size_t n_fft,
   *n_rows = n_fft_out;
   *n_cols = n_frames;
   fftw_destroy_plan(plan);
+  free(window);
   fftw_free(frame);
   fftw_free(output);
   return stft_matrix;

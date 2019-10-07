@@ -1,3 +1,5 @@
+#pragma once
+
 #include "sndfile.h"
 
 typedef struct {
