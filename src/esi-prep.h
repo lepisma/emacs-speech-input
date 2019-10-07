@@ -19,8 +19,8 @@ double* linspace(double start, double end, size_t n) {
 }
 
 // Similar effects as np.pad(array, pad_size, "reflect")
-double* pad_reflect(double* array, size_t size, size_t pad_size) {
-  double *padded_array = calloc(pad_size + size + pad_size, sizeof(double));
+float* pad_reflect(float* array, size_t size, size_t pad_size) {
+  float *padded_array = calloc(pad_size + size + pad_size, sizeof(float));
 
   // TODO: - avoid copying here
   //       - support more mirrors
@@ -80,9 +80,11 @@ fftw_complex *stft(float *samples, size_t n_samples, size_t n_fft,
   size_t pad_size = floor(n_fft / 2);
   size_t n_fft_out = 1 + pad_size;
 
-  // TODO: Do padding, update n_samples and stuff.
+  // For centering the stft frame number indices
+  float* padded_samples = pad_reflect(samples, n_samples, pad_size);
+  size_t n_padded_samples = pad_size + n_samples + pad_size;
 
-  size_t n_frames = floor((n_samples - n_fft) / hop_length + 1);
+  size_t n_frames = floor((n_padded_samples - n_fft) / hop_length + 1);
   fftw_complex *stft_matrix = fftw_malloc(n_fft_out * n_frames * sizeof(fftw_complex));
 
   double* frame = fftw_malloc(n_fft * sizeof(double));
@@ -93,7 +95,7 @@ fftw_complex *stft(float *samples, size_t n_samples, size_t n_fft,
 
   for (size_t i = 0; i < n_frames; i++) {
     for (size_t j = 0; j < n_fft; j++) {
-      frame[j] = samples[j + i * hop_length] * window[j];
+      frame[j] = padded_samples[j + i * hop_length] * window[j];
     }
 
     fftw_execute(plan);
@@ -109,6 +111,7 @@ fftw_complex *stft(float *samples, size_t n_samples, size_t n_fft,
   free(window);
   fftw_free(frame);
   fftw_free(output);
+  free(padded_samples);
   return stft_matrix;
 }
 

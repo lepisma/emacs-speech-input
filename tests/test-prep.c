@@ -47,21 +47,29 @@ void test_stft(void **state) {
   size_t n_rows, n_cols;
 
   fftw_complex truth_1[] = {
+    0.0 + 0.0 * I,
     0.5 + 0.0 * I,
     1.0 + 0.0 * I,
+    0.5 + 0.0 * I,
+    0.0 + 0.0 * I,
     -0.5 + 0.0 * I,
-    -1.0 + 0.0 * I
+    -1.0 + 0.0 * I,
+    -0.5 + 0.0 * I
   };
   fftw_complex* stft_matrix = stft(samples, 3, 2, 1, &n_rows, &n_cols);
-  assert_int_equal(n_rows * n_cols, 4);
+  assert_int_equal(n_rows * n_cols, 8);
   match_complex_arrays(truth_1, stft_matrix, n_rows * n_cols);
 
   fftw_complex truth_2[] = {
+    0.375 + 0.0 * I,
     1.125 + 0.0 * I,
-    -0.5625 + 0.3247595 * I
+    1.125 + 0.0 * I,
+    -0.1875 + 0.3247595 * I,
+    -0.5625 + 0.3247595 * I,
+    -0.5625 - 0.3247595 * I
   };
   stft_matrix = stft(samples, 3, 3, 1, &n_rows, &n_cols);
-  assert_int_equal(n_rows * n_cols, 2);
+  assert_int_equal(n_rows * n_cols, 6);
   match_complex_arrays(truth_2, stft_matrix, n_rows * n_cols);
 }
 
