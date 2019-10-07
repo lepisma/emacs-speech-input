@@ -5,6 +5,7 @@ all: esi-core.so
 test: tests/test-prep esi-core.so
 	cask exec buttercup -L .
 	tests/test-prep
+	rm tests/test-prep
 
 LIBS = -lsndfile -lfftw3 -lm
 
