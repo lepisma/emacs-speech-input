@@ -7,17 +7,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-double* boxcar_window(size_t window_size) {
-  double* window = malloc(sizeof(double) * window_size);
-  for (size_t i = 0; i < window_size; i++) {
-    window[i] = 1.0;
-  }
-
-  return window;
-}
-
 double* linspace(double start, double end, size_t n) {
-  double* items = malloc(sizeof(double) * n);
+  double *items = malloc(sizeof(double) * n);
   double diff = (end - start) / (n - 1);
 
   for (size_t i = 0; i < n; i++) {
@@ -25,6 +16,43 @@ double* linspace(double start, double end, size_t n) {
   }
 
   return items;
+}
+
+// Similar effects as np.pad(array, pad_size, "reflect")
+double* pad_reflect(double* array, size_t size, size_t pad_size) {
+  double *padded_array = calloc(pad_size + size + pad_size, sizeof(double));
+
+  // TODO: - avoid copying here
+  //       - support more mirrors
+  //       - use a single closed form index and loop
+  for (size_t i = 0; i < size; i++) {
+    padded_array[pad_size + i] = array[i];
+  }
+
+  if (pad_size > size) {
+    printf("Pad size larger than array size, returning 0 padded array as we don't support multiple mirrors.");
+    return padded_array;
+  }
+
+  // Right pad
+  for (size_t i = 0; i < pad_size; i++) {
+    padded_array[pad_size + size + i] = array[size - i - 2];
+  }
+
+  // Left pad
+  for (size_t i = 0; i < pad_size; i++) {
+    padded_array[pad_size - i - 1] = array[i + 1];
+  }
+  return padded_array;
+}
+
+double* boxcar_window(size_t window_size) {
+  double* window = malloc(sizeof(double) * window_size);
+  for (size_t i = 0; i < window_size; i++) {
+    window[i] = 1.0;
+  }
+
+  return window;
 }
 
 double* hanning_window(size_t window_size) {
@@ -49,9 +77,11 @@ double* hanning_window(size_t window_size) {
 
 fftw_complex *stft(float *samples, size_t n_samples, size_t n_fft,
                    size_t hop_length, size_t *n_rows, size_t *n_cols) {
-  // TODO: Windowing, padding etc.
+  size_t pad_size = floor(n_fft / 2);
+  size_t n_fft_out = 1 + pad_size;
 
-  size_t n_fft_out = 1 + floor(n_fft / 2);
+  // TODO: Do padding, update n_samples and stuff.
+
   size_t n_frames = floor((n_samples - n_fft) / hop_length + 1);
   fftw_complex *stft_matrix = fftw_malloc(n_fft_out * n_frames * sizeof(fftw_complex));
 
