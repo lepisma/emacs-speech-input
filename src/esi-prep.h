@@ -59,7 +59,7 @@ fftw_complex *stft(float *samples, size_t n_samples, size_t n_fft,
   fftw_complex* output = fftw_malloc(n_fft_out * sizeof(fftw_complex));
   fftw_plan plan = fftw_plan_dft_r2c_1d(n_fft, frame, output, FFTW_ESTIMATE);
 
-  double* window = boxcar_window(n_fft);
+  double* window = hanning_window(n_fft);
 
   for (int i = 0; i < n_frames; i++) {
     for (int j = 0; j < n_fft; j++) {
