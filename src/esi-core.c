@@ -2,6 +2,7 @@
 #include "sndfile.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "esi-io.h"
 #include "esi-prep.h"
@@ -30,7 +31,7 @@ static emacs_value Fwav_to_samples(emacs_env *env, ptrdiff_t n, emacs_value args
   float *samples = samples_from_buffer(buffer, buffer_size, &n_samples);
 
   emacs_value vector = make_vector(env, n_samples, 0);
-  for (int i = 0; i < n_samples; i++) {
+  for (size_t i = 0; i < n_samples; i++) {
     env->vec_set(env, vector, i, env->make_float(env, samples[i]));
   }
 

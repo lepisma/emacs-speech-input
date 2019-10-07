@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdint.h>
 #include "sndfile.h"
 
 typedef struct {
@@ -77,7 +78,7 @@ float* samples_from_buffer(char* buffer, size_t buffer_size, sf_count_t* n_sampl
   // KLUDGE: This is for picking up first channel data. There is too much
   //         copying happening overall.
   float *samples = malloc(sizeof(float) * file_info.frames);
-  for (int i = 0; i < file_info.frames; i++) {
+  for (size_t i = 0; i < file_info.frames; i++) {
     samples[i] = frames[i * file_info.channels];
   }
 

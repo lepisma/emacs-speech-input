@@ -61,14 +61,14 @@ fftw_complex *stft(float *samples, size_t n_samples, size_t n_fft,
 
   double* window = hanning_window(n_fft);
 
-  for (int i = 0; i < n_frames; i++) {
-    for (int j = 0; j < n_fft; j++) {
+  for (size_t i = 0; i < n_frames; i++) {
+    for (size_t j = 0; j < n_fft; j++) {
       frame[j] = samples[j + i * hop_length] * window[j];
     }
 
     fftw_execute(plan);
 
-    for (int j = 0; j < n_fft_out; j++) {
+    for (size_t j = 0; j < n_fft_out; j++) {
       stft_matrix[i + j * n_frames] = output[j];
     }
   }
@@ -88,7 +88,7 @@ double* spectrogram(float* samples, size_t n_samples, size_t n_fft,
   fftw_complex* stft_matrix = stft(samples, n_samples, n_fft, hop_length, &n_rows, &n_cols);
   double* sg_matrix = malloc(n_rows * n_cols * sizeof(double));
 
-  for (int i = 0; i < (n_rows * n_cols); i++) {
+  for (size_t i = 0; i < (n_rows * n_cols); i++) {
     sg_matrix[i] = pow(cabs(stft_matrix[i]), power);
   }
   fftw_free(stft_matrix);
