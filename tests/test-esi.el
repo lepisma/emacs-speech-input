@@ -10,7 +10,7 @@
 
 (defun matrix-from-file (filepath)
   "Read a numpy.savetxt style matrix from given file."
-  (cl-map 'vector (lambda (line) (cl-map 'vector #'string-to-number (s-split " " line))) (s-split "\n" (f-read-text filepath))))
+  (cl-map 'vector (lambda (line) (cl-map 'vector #'string-to-number (s-split " " line))) (s-split "\n" (s-trim (f-read-text filepath)))))
 
 (defun vector-from-file (filepath)
   "Read a newline separated vector (also numpy.savetxt style) from given file."
