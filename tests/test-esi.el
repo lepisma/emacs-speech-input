@@ -16,21 +16,18 @@
   "Read a newline separated vector (also numpy.savetxt style) from given file."
   (cl-map 'vector #'string-to-number (s-split "\n" (s-trim (f-read-text filepath)))))
 
-(defun approx-equal (x y &optional fuzz-factor)
-  (or (= x y)
-      (< (/ (abs (- x y))
-            (max (abs x) (abs y)))
-         (or fuzz-factor 1.0e-6))))
+(defun approx-equal (x y &optional rtol atol)
+  (<= (abs (- x y)) (+ (* (or rtol 1e-5) (abs y)) (or atol 1e-8))))
 
-(defun vector-approx-equal (a b &optional fuzz-factor)
+(defun vector-approx-equal (a b &optional rtol atol)
   (and (= (length a)
           (length b)
-          (apply #'+ (cl-mapcar (lambda (a b) (if (approx-equal a b fuzz-factor) 1 0)) a b)))))
+          (apply #'+ (cl-mapcar (lambda (a b) (if (approx-equal a b rtol atol) 1 0)) a b)))))
 
-(defun matrix-approx-equal (a b &optional fuzz-factor)
+(defun matrix-approx-equal (a b &optional rtol atol)
   (and (= (length a)
           (length b)
-          (apply #'+ (cl-mapcar (lambda (a b) (if (vector-approx-equal a b fuzz-factor) 1 0)) a b)))))
+          (apply #'+ (cl-mapcar (lambda (a b) (if (vector-approx-equal a b rtol atol) 1 0)) a b)))))
 
 (defun fft-real (vector)
   (cl-map 'vector (lambda (elem) (aref elem 0)) vector))
@@ -39,10 +36,10 @@
   (cl-map 'vector (lambda (elem) (aref elem 1)) vector))
 
 (defun stft-real (matrix)
-  (cl-map 'vector (lambda (row) (cl-map 'vector (lambda (elem) (aref elem 0)) row)) matrix))
+  (cl-map 'vector #'fft-real matrix))
 
 (defun stft-imag (matrix)
-  (cl-map 'vector (lambda (row) (cl-map 'vector (lambda (elem) (aref elem 1)) row)) matrix))
+  (cl-map 'vector #'fft-imag matrix))
 
 (describe "Sample reading"
   (it "is correct"
