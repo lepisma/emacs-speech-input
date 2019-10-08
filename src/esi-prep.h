@@ -18,17 +18,23 @@ double* linspace(double start, double end, size_t n) {
   return items;
 }
 
-// Similar effects as np.pad(array, pad_size, "reflect")
-float* pad_reflect(float* array, size_t size, size_t pad_size) {
-  float *padded_array = calloc(pad_size + size + pad_size, sizeof(float));
+float* pad_zero(float* array, size_t size, size_t pad_size) {
+  float* padded_array = calloc(pad_size + size + pad_size, sizeof(float));
 
-  // TODO: - avoid copying here
-  //       - support more mirrors
-  //       - use a single closed form index and loop
   for (size_t i = 0; i < size; i++) {
     padded_array[pad_size + i] = array[i];
   }
 
+  return padded_array;
+}
+
+// Similar effects as np.pad(array, pad_size, "reflect")
+float* pad_reflect(float* array, size_t size, size_t pad_size) {
+  float *padded_array = pad_zero(array, size, pad_size);
+
+  // TODO: - avoid copying here
+  //       - support more mirrors
+  //       - use a single closed form index and loop
   if (pad_size > size) {
     printf("Pad size larger than array size, returning 0 padded array as we don't support multiple mirrors.");
     return padded_array;
