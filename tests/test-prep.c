@@ -6,19 +6,18 @@
 #include <stdint.h>
 #include "esi-prep.h"
 
-#define FLT_EPSILON 1e-07
+#define EPSILON 1e-07
 
 void match_arrays(double* a, double* b, size_t size) {
   for (size_t i = 0; i < size; i++) {
-    // TODO: FLT epsilon doesn't make sense here
-    assert_float_equal(a[i], b[i], FLT_EPSILON);
+    assert_float_equal(a[i], b[i], EPSILON);
   }
 }
 
 void match_complex_arrays(fftw_complex* a, fftw_complex* b, size_t size) {
   for (size_t i = 0; i < size; i++) {
-    assert_float_equal(creal(a[i]), creal(b[i]), FLT_EPSILON);
-    assert_float_equal(cimag(a[i]), cimag(b[i]), FLT_EPSILON);
+    assert_float_equal(creal(a[i]), creal(b[i]), EPSILON);
+    assert_float_equal(cimag(a[i]), cimag(b[i]), EPSILON);
   }
 }
 
@@ -42,7 +41,7 @@ void test_window(void **state) {
 }
 
 void test_stft(void **state) {
-  float samples[] = { 0.0, 0.5, 1.0 };
+  double samples[] = { 0.0, 0.5, 1.0 };
 
   size_t n_rows, n_cols;
 

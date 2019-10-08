@@ -53,7 +53,7 @@ sf_count_t vftell(void *user_data) {
   return vf->offset;
 }
 
-float* samples_from_buffer(char* buffer, size_t buffer_size, sf_count_t* n_samples) {
+double* samples_from_buffer(char* buffer, size_t buffer_size, sf_count_t* n_samples) {
   VIO_DATA vio_data;
   SF_VIRTUAL_IO vio;
 
@@ -72,12 +72,12 @@ float* samples_from_buffer(char* buffer, size_t buffer_size, sf_count_t* n_sampl
   sfile = sf_open_virtual(&vio, SFM_READ, &file_info, &vio_data);
 
   sf_count_t frames_count = file_info.frames * file_info.channels;
-  float *frames = malloc(sizeof(float) * frames_count);
-  sf_readf_float(sfile, frames, frames_count);
+  double *frames = malloc(sizeof(double) * frames_count);
+  sf_readf_double(sfile, frames, frames_count);
 
   // KLUDGE: This is for picking up first channel data. There is too much
   //         copying happening overall.
-  float *samples = malloc(sizeof(float) * file_info.frames);
+  double *samples = malloc(sizeof(double) * file_info.frames);
   for (size_t i = 0; i < file_info.frames; i++) {
     samples[i] = frames[i * file_info.channels];
   }

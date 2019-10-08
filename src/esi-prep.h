@@ -18,8 +18,8 @@ double* linspace(double start, double end, size_t n) {
   return items;
 }
 
-float* pad_zero(float* array, size_t size, size_t pad_size) {
-  float* padded_array = calloc(pad_size + size + pad_size, sizeof(float));
+double* pad_zero(double* array, size_t size, size_t pad_size) {
+  double* padded_array = calloc(pad_size + size + pad_size, sizeof(double));
 
   for (size_t i = 0; i < size; i++) {
     padded_array[pad_size + i] = array[i];
@@ -29,8 +29,8 @@ float* pad_zero(float* array, size_t size, size_t pad_size) {
 }
 
 // Similar effects as np.pad(array, pad_size, "reflect")
-float* pad_reflect(float* array, size_t size, size_t pad_size) {
-  float *padded_array = pad_zero(array, size, pad_size);
+double* pad_reflect(double* array, size_t size, size_t pad_size) {
+  double *padded_array = pad_zero(array, size, pad_size);
 
   // TODO: - avoid copying here
   //       - support more mirrors
@@ -66,8 +66,8 @@ double* hanning_window(size_t window_size) {
   double* angles = linspace(-M_PI, M_PI, window_size + 1);
 
   // NOTE: Changing this value should cover hamming too
-  float alpha = 0.5;
-  float coeffs[] = { alpha, 1.0 - alpha };
+  double alpha = 0.5;
+  double coeffs[] = { alpha, 1.0 - alpha };
 
   for (size_t k = 0; k < 2; k++) {
     for (size_t i = 0; i < window_size; i++) {
@@ -81,13 +81,24 @@ double* hanning_window(size_t window_size) {
   return window;
 }
 
-fftw_complex *stft(float *samples, size_t n_samples, size_t n_fft,
+fftw_complex *rfft(double *samples, size_t n_samples, size_t *n_output) {
+  *n_output = floor(n_samples / 2) + 1;
+
+  fftw_complex *fft_output = fftw_malloc(sizeof(fftw_complex) * (*n_output));
+  fftw_plan plan = fftw_plan_dft_r2c_1d(n_samples, samples, fft_output, FFTW_ESTIMATE);
+  fftw_execute(plan);
+
+  fftw_destroy_plan(plan);
+  return fft_output;
+}
+
+fftw_complex *stft(double *samples, size_t n_samples, size_t n_fft,
                    size_t hop_length, size_t *n_rows, size_t *n_cols) {
   size_t pad_size = floor(n_fft / 2);
   size_t n_fft_out = 1 + pad_size;
 
   // For centering the stft frame number indices
-  float* padded_samples = pad_reflect(samples, n_samples, pad_size);
+  double* padded_samples = pad_reflect(samples, n_samples, pad_size);
   size_t n_padded_samples = pad_size + n_samples + pad_size;
 
   size_t n_frames = floor((n_padded_samples - n_fft) / hop_length + 1);
@@ -121,7 +132,7 @@ fftw_complex *stft(float *samples, size_t n_samples, size_t n_fft,
   return stft_matrix;
 }
 
-double *spectrogram(float *samples, size_t n_samples, size_t n_fft,
+double *spectrogram(double *samples, size_t n_samples, size_t n_fft,
                     size_t hop_length, size_t power, size_t *n_rows,
                     size_t *n_cols) {
   fftw_complex* stft_matrix = stft(samples, n_samples, n_fft, hop_length, n_rows, n_cols);
@@ -137,7 +148,7 @@ double *spectrogram(float *samples, size_t n_samples, size_t n_fft,
 
 // NOTE: For most of the neural network based models, we might just stop here
 //       and won't do the log + dct to get MFCC
-double* melspectrogram(float* samples, size_t n_samples, size_t n_fft,
+double* melspectrogram(double* samples, size_t n_samples, size_t n_fft,
                        size_t hop_length, size_t *n_rows, size_t *n_cols) {
   // NOTE: Default power is 2
   double* sg_matrix = spectrogram(samples, n_samples, n_fft, hop_length, 2, n_rows, n_cols);
