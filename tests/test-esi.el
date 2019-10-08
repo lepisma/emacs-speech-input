@@ -32,6 +32,12 @@
           (length b)
           (apply #'+ (cl-mapcar (lambda (a b) (if (vector-approx-equal a b) 1 0)) a b)))))
 
+(defun stft-real (matrix)
+  (cl-map 'vector (lambda (row) (cl-map 'vector (lambda (elem) (aref elem 0)) row)) matrix))
+
+(defun stft-imag (matrix)
+  (cl-map 'vector (lambda (row) (cl-map 'vector (lambda (elem) (aref elem 1)) row)) matrix))
+
 (describe "Sample reading"
   (it "is correct"
     (let ((samples (esi-core-wav-to-samples (with-temp-buffer
@@ -39,6 +45,18 @@
                                               (buffer-string))))
           (true-samples (vector-from-file "tests/resources/hello.samples")))
       (expect (vector-approx-equal true-samples samples) :to-be t))))
+
+(describe "STFT"
+  (it "has correct real values"
+    (let* ((samples (vector-from-file "tests/resources/hello.samples"))
+           (stft (esi-core-samples-to-stft samples 2048 512))
+           (true-real-values (matrix-from-file "tests/resources/hello.stft.real")))
+      (expect (matrix-approx-equal true-real-values (stft-real stft)))))
+  (it "has correct imaginary values"
+    (let* ((samples (vector-from-file "tests/resources/hello.samples"))
+           (stft (esi-core-samples-to-stft samples 2048 512))
+           (true-imag-values (matrix-from-file "tests/resources/hello.stft.imag")))
+      (expect (matrix-approx-equal true-imag-values (stft-imag stft))))))
 
 (describe "Spectrogram"
   (it "is correct"

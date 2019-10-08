@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <complex.h>
 
 #include "esi-io.h"
 #include "esi-prep.h"
@@ -38,6 +39,44 @@ static emacs_value Fwav_to_samples(emacs_env *env, ptrdiff_t n, emacs_value args
   free(samples);
   free(buffer);
   return vector;
+}
+
+// Create stft matrix (elisp vector based) using the following arguments:
+// - samples (a vector)
+// - n-fft
+// - hop-length
+static emacs_value Fsamples_to_stft(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
+  size_t n_fft = env->extract_integer(env, args[1]);
+  size_t hop_length = env->extract_integer(env, args[2]);
+
+  size_t n_samples = env->vec_size(env, args[0]);
+  float* samples = malloc(sizeof(float) * n_samples);
+  for (size_t i = 0; i < n_samples; i++) {
+    samples[i] = env->extract_float(env, env->vec_get(env, args[0], i));
+  }
+
+  size_t n_rows, n_cols;
+  fftw_complex* stft_matrix = stft(samples, n_samples, n_fft, hop_length, &n_rows, &n_cols);
+
+  emacs_value matrix = make_vector(env, n_rows, 0);
+  for (size_t i = 0; i < n_rows; i++) {
+    emacs_value vector = make_vector(env, n_cols, 0);
+
+    // stft_matrix is row major
+    for (size_t j = 0; j < n_cols; j++) {
+      emacs_value complex_number = make_vector(env, 2, 0);
+      env->vec_set(env, complex_number, 0, env->make_float(env, creal(stft_matrix[(i * n_cols) + j])));
+      env->vec_set(env, complex_number, 1, env->make_float(env, cimag(stft_matrix[(i * n_cols) + j])));
+      env->vec_set(env, vector, j, complex_number);
+    }
+
+    env->vec_set(env, matrix, i, vector);
+  }
+
+  free(samples);
+  free(stft_matrix);
+
+  return matrix;
 }
 
 // Create spectrogram matrix (elisp vectors) using the following arguments:
@@ -99,6 +138,13 @@ int emacs_module_init(struct emacs_runtime *ert) {
 
   emacs_value sample_fn = env->make_function(env, 1, 1, Fwav_to_samples, "Read and return vector of samples from wav bytes", NULL);
   bind_function(env, "esi-core-wav-to-samples", sample_fn);
+
+  emacs_value stft_fn = env->make_function(env, 3, 3,
+                                          Fsamples_to_stft,
+                                          "Calculate stft for given samples.\n\n"
+                                          "\(fn samples-vector n-fft hop-length)",
+                                          NULL);
+  bind_function(env, "esi-core-samples-to-stft", stft_fn);
 
   emacs_value spectrogram_fn = env->make_function(env, 3, 4,
                                                  Fsamples_to_spectrogram,
