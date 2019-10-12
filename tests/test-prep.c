@@ -72,10 +72,32 @@ void test_stft(void **state) {
   match_complex_arrays(truth_2, stft_matrix, n_rows * n_cols);
 }
 
+void test_mel_frequencies(void **state) {
+  double truth[] = {
+    0.0, 213.11369888, 426.22739775, 639.34109663,
+    852.45479551, 1069.957853, 1332.9552128, 1660.59774631,
+    2068.77534111, 2577.2836447, 3210.78410654, 4000.0
+  };
+  double* mel_fs = mel_frequencies(12, 0, 4000);
+  match_arrays(truth, mel_fs, 12);
+}
+
+void test_frequencies(void **state) {
+  double truth[] = {
+    0.0, 1378.125, 2756.25,
+    4134.375, 5512.5, 6890.625,
+    8268.75, 9646.875, 11025.0
+  };
+  double* fft_fs = fft_frequencies(22050, 16);
+  match_arrays(truth, fft_fs, 9);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_stft),
-    cmocka_unit_test(test_window)
+    cmocka_unit_test(test_window),
+    cmocka_unit_test(test_mel_frequencies),
+    cmocka_unit_test(test_frequencies)
   };
 
   return cmocka_run_group_tests(tests, NULL, NULL);

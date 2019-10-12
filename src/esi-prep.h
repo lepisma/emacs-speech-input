@@ -146,6 +146,60 @@ double *spectrogram(double *samples, size_t n_samples, size_t n_fft,
   return sg_matrix;
 }
 
+double hz_to_mel(double f) {
+  double min_log_hz = 1000.0;
+
+  if (f < min_log_hz) {
+    return 3.0 * f / 200.0;
+  } else {
+    return 3.0 * (min_log_hz / 200.0) + log(f / min_log_hz) / (log(6.4) / 27.0);
+  }
+}
+
+double mel_to_hz(double mel) {
+  double min_log_hz = 1000.0;
+  double min_log_mel = 3.0 * min_log_hz / 200.0;
+
+  if (mel < min_log_mel) {
+    return 200 * mel / 3.0 ;
+  } else {
+    return min_log_hz * exp((log(6.4) / 27.0) * (mel - min_log_mel));
+  }
+}
+
+// Return center frequencies for mel bands. Note that we use Slaney method for
+// all of the work with mels which is the default in librosa.
+double* mel_frequencies(size_t n_mels, double fmin, double fmax) {
+  double min_mel = hz_to_mel(fmin);
+  double max_mel = hz_to_mel(fmax);
+
+  double *freqs = linspace(min_mel, max_mel, n_mels);
+
+  for (size_t i = 0; i < n_mels; i++) {
+    freqs[i] = mel_to_hz(freqs[i]);
+  }
+
+  return freqs;
+}
+
+double* fft_frequencies(size_t sr, size_t n_fft) {
+  return linspace(0, (double)sr / 2, 1 + floor(n_fft / 2));
+}
+
+// Return a mel filterbank matrix. Most of the explicitly unmentioned parameters
+// default to the values set in librosa.
+double* mel_filter(size_t sr, size_t n_fft, size_t n_mels) {
+  size_t n_rows = n_mels;
+  size_t n_cols = 1 + floor(n_fft / 2);
+
+  double fmin = 0.0;
+  double fmax = (double)sr / 2;
+  double *weights = calloc(n_rows * n_cols, sizeof(double));
+
+  // TODO: Fill in values.
+  return weights;
+}
+
 // NOTE: For most of the neural network based models, we might just stop here
 //       and won't do the log + dct to get MFCC
 double* melspectrogram(double* samples, size_t n_samples, size_t n_fft,
