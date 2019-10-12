@@ -21,6 +21,21 @@ static emacs_value make_vector(emacs_env *env, int len, double init) {
   return env->funcall(env, Fmake_vector, 2, args);
 }
 
+// Return an elisp matrix from a given row major float matrix
+emacs_value make_matrix(emacs_env *env, double* matrix, size_t n_rows, size_t n_cols) {
+  emacs_value output = make_vector(env, n_rows, 0);
+  for (size_t i = 0; i < n_rows; i++) {
+    emacs_value row = make_vector(env, n_cols, 0);
+    for (size_t j = 0; j < n_cols; j++) {
+      env->vec_set(env, row, j, env->make_float(env, matrix[(i * n_cols) + j]));
+    }
+
+    env->vec_set(env, output, i, row);
+  }
+
+  return output;
+}
+
 static emacs_value Fwav_to_samples(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
   ptrdiff_t buffer_size;
   env->copy_string_contents(env, args[0], NULL, &buffer_size);
@@ -123,21 +138,24 @@ static emacs_value Fspectrogram(emacs_env *env, ptrdiff_t n, emacs_value args[],
 
   size_t n_rows, n_cols;
   double* sg_matrix = spectrogram(samples, n_samples, n_fft, hop_length, power, &n_rows, &n_cols);
-  emacs_value matrix = make_vector(env, n_rows, 0);
-  for (size_t i = 0; i < n_rows; i++) {
-    emacs_value vector = make_vector(env, n_cols, 0);
-
-    // sg_matrix is row major
-    for (size_t j = 0; j < n_cols; j++) {
-      env->vec_set(env, vector, j, env->make_float(env, sg_matrix[(i * n_cols) + j]));
-    }
-
-    env->vec_set(env, matrix, i, vector);
-  }
-
+  emacs_value matrix = make_matrix(env, sg_matrix, n_rows, n_cols);
   free(samples);
   free(sg_matrix);
+  return matrix;
+}
 
+// Create mel filterbank matrix (elisp vectors) using the following arguments:
+// - sample rate
+// - n-fft
+// - n-mels
+static emacs_value Fmel_filter(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
+  size_t sr = env->extract_integer(env, args[0]);
+  size_t n_fft = env->extract_integer(env, args[1]);
+  size_t n_mels = env->extract_integer(env, args[2]);
+
+  double* filterbank = mel_filter(sr, n_fft, n_mels);
+  emacs_value matrix = make_matrix(env, filterbank, n_mels, 1 + floor(n_fft / 2));
+  free(filterbank);
   return matrix;
 }
 
@@ -185,6 +203,13 @@ int emacs_module_init(struct emacs_runtime *ert) {
                                                  "\(fn samples-vector n-fft hop-length &optional power)",
                                                  NULL);
   bind_function(env, "esi-core--spectrogram", spectrogram_fn);
+
+  emacs_value melfb_fn = env->make_function(env, 3, 3,
+                                           Fmel_filter,
+                                           "Calculate mel filterbank matrix.\n\n"
+                                           "\(fn sample-rate n-fft n-mels)",
+                                           NULL);
+  bind_function(env, "esi-core--mel-filter", melfb_fn);
 
   provide(env, "esi-core");
 

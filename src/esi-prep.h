@@ -228,12 +228,12 @@ double* mel_filter(size_t sr, size_t n_fft, size_t n_mels) {
 // NOTE: For most of the neural network based models, we might just stop here
 //       and won't do the log + dct to get MFCC
 double* melspectrogram(double* samples, size_t n_samples, size_t sr, size_t n_fft,
-                       size_t hop_length, n_mels, size_t *n_rows, size_t *n_cols) {
+                       size_t hop_length, size_t n_mels, size_t *n_rows, size_t *n_cols) {
   // NOTE: Default power is 2
   double* sg_matrix = spectrogram(samples, n_samples, n_fft, hop_length, 2, n_rows, n_cols);
   double* filterbank = mel_filter(sr, n_fft, n_mels);
 
-  double* msg_matrix = malloc(n_mels * n_cols * sizeof(double));
+  double* msg_matrix = malloc(n_mels * (*n_cols) * sizeof(double));
   // TODO: Fill in values
 
   free(filterbank);

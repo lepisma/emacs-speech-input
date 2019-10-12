@@ -78,3 +78,9 @@
     (let ((samples (vector-from-file "tests/resources/hello.samples"))
           (true-spectrogram (matrix-from-file "tests/resources/hello.spectrogram")))
       (expect (matrix-approx-equal true-spectrogram (esi-core--spectrogram samples 2048 512 2))))))
+
+(describe "Mel filterbank"
+  (it "is correct"
+    (let ((true-melfb (matrix-from-file "tests/resources/mel.fb"))
+          (melfb (esi-core--mel-filter 8000 2048 12)))
+      (expect (matrix-approx-equal melfb true-melfb)))))
