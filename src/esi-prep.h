@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <cblas.h>
 
 double* linspace(double start, double end, size_t n) {
   double *items = malloc(sizeof(double) * n);
@@ -228,14 +229,17 @@ double* mel_filter(size_t sr, size_t n_fft, size_t n_mels) {
 // NOTE: For most of the neural network based models, we might just stop here
 //       and won't do the log + dct to get MFCC
 double* melspectrogram(double* samples, size_t n_samples, size_t sr, size_t n_fft,
-                       size_t hop_length, size_t n_mels, size_t *n_rows, size_t *n_cols) {
+                       size_t hop_length, size_t n_mels, size_t *n_cols) {
   // NOTE: Default power is 2
-  double* sg_matrix = spectrogram(samples, n_samples, n_fft, hop_length, 2, n_rows, n_cols);
+  size_t n_rows;
+  double* sg_matrix = spectrogram(samples, n_samples, n_fft, hop_length, 2, &n_rows, n_cols);
   double* filterbank = mel_filter(sr, n_fft, n_mels);
 
-  double* msg_matrix = malloc(n_mels * (*n_cols) * sizeof(double));
-  // TODO: Fill in values
-
+  double* msg_matrix = calloc(n_mels * (*n_cols), sizeof(double));
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+              n_mels, (*n_cols), n_rows,
+              1.0, filterbank, n_rows, sg_matrix, (*n_cols),
+              0.0, msg_matrix, (*n_cols));
   free(filterbank);
   free(sg_matrix);
   return msg_matrix;

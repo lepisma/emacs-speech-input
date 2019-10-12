@@ -144,6 +144,32 @@ static emacs_value Fspectrogram(emacs_env *env, ptrdiff_t n, emacs_value args[],
   return matrix;
 }
 
+// Create mel-spectrogram matrix using the following arguments:
+// - samples (a vector)
+// - sample rate
+// - n-fft
+// - hop-length
+// - n-mels
+static emacs_value Fmel_spectrogram(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
+  size_t sr = env->extract_integer(env, args[1]);
+  size_t n_fft = env->extract_integer(env, args[2]);
+  size_t hop_length = env->extract_integer(env, args[3]);
+  size_t n_mels = env->extract_integer(env, args[4]);
+
+  size_t n_samples = env->vec_size(env, args[0]);
+  double *samples = malloc(sizeof(double) * n_samples);
+  for (size_t i = 0; i < n_samples; i++) {
+    samples[i] = env->extract_float(env, env->vec_get(env, args[0], i));
+  }
+
+  size_t n_cols;
+  double *msg_matrix = melspectrogram(samples, n_samples, sr, n_fft, hop_length, n_mels, &n_cols);
+  emacs_value matrix = make_matrix(env, msg_matrix, n_mels, n_cols);
+  free(samples);
+  free(msg_matrix);
+  return matrix;
+}
+
 // Create mel filterbank matrix (elisp vectors) using the following arguments:
 // - sample rate
 // - n-fft
@@ -210,6 +236,13 @@ int emacs_module_init(struct emacs_runtime *ert) {
                                            "\(fn sample-rate n-fft n-mels)",
                                            NULL);
   bind_function(env, "esi-core--mel-filter", melfb_fn);
+
+  emacs_value mel_spectrogram_fn = env->make_function(env, 5, 5,
+                                                     Fmel_spectrogram,
+                                                     "Calculate mel-spectrogram for given samples.\n\n"
+                                                     "\(fn samples-vector sample-rate n-fft hop-length n-mels)",
+                                                     NULL);
+  bind_function(env, "esi-core--mel-spectrogram", mel_spectrogram_fn);
 
   provide(env, "esi-core");
 

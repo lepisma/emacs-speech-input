@@ -7,7 +7,7 @@ test: tests/test-prep
 	tests/test-prep
 	touch tests/test-prep.c
 
-LIBS = -lsndfile -lfftw3 -lm
+LIBS = -lsndfile -lfftw3 -lm -lcblas
 
 tests/test-prep: tests/test-prep.c esi-core.so
 	gcc -lcmocka $(LIBS) -I ./src/ tests/test-prep.c -o $@
