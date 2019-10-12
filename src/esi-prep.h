@@ -196,16 +196,47 @@ double* mel_filter(size_t sr, size_t n_fft, size_t n_mels) {
   double fmax = (double)sr / 2;
   double *weights = calloc(n_rows * n_cols, sizeof(double));
 
-  // TODO: Fill in values.
+  double *fft_fs = fft_frequencies(sr, n_fft);
+  double *mel_fs = mel_frequencies(n_mels + 2, fmin, fmax);
+
+  double norm_multiplier;
+  for (size_t i = 0; i < n_rows; i++) {
+    norm_multiplier = 2.0 / (mel_fs[i + 2] - mel_fs[i]);
+
+    for (size_t j = 0; j < n_cols; j++) {
+      if (fft_fs[j] >= mel_fs[i]) {
+        if (fft_fs[j] <= mel_fs[i + 1]) {
+          // Rise
+          weights[j + (i * n_cols)] = norm_multiplier *
+                                      (fft_fs[j] - mel_fs[i]) /
+                                      (mel_fs[i + 1] - mel_fs[i]);
+        } else if (fft_fs[j] <= mel_fs[i + 2]) {
+          // Fall
+          weights[j + (i * n_cols)] = norm_multiplier *
+                                      (mel_fs[i + 2] - fft_fs[j]) /
+                                      (mel_fs[i + 2] - mel_fs[i + 1]);
+        }
+      }
+    }
+  }
+
+  free(fft_fs);
+  free(mel_fs);
   return weights;
 }
 
 // NOTE: For most of the neural network based models, we might just stop here
 //       and won't do the log + dct to get MFCC
-double* melspectrogram(double* samples, size_t n_samples, size_t n_fft,
-                       size_t hop_length, size_t *n_rows, size_t *n_cols) {
+double* melspectrogram(double* samples, size_t n_samples, size_t sr, size_t n_fft,
+                       size_t hop_length, n_mels, size_t *n_rows, size_t *n_cols) {
   // NOTE: Default power is 2
   double* sg_matrix = spectrogram(samples, n_samples, n_fft, hop_length, 2, n_rows, n_cols);
+  double* filterbank = mel_filter(sr, n_fft, n_mels);
 
-  // TODO: Dot with mel filter
+  double* msg_matrix = malloc(n_mels * n_cols * sizeof(double));
+  // TODO: Fill in values
+
+  free(filterbank);
+  free(sg_matrix);
+  return msg_matrix;
 }
