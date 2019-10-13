@@ -30,6 +30,7 @@
 
 ;;; Code:
 
+(require 'subr-x)
 (require 'dash)
 (require 'dash-functional)
 (require 'helm)

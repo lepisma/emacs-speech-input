@@ -206,7 +206,10 @@ int emacs_module_init(struct emacs_runtime *ert) {
   emacs_value version_fn = env->make_function(env, 0, 0, Fesi_core_version, "Return version of esi-core.", NULL);
   bind_function(env, "esi-core-version", version_fn);
 
-  emacs_value sample_fn = env->make_function(env, 1, 1, Fwav_to_samples, "Read and return vector of samples from wav bytes", NULL);
+  emacs_value sample_fn = env->make_function(env, 1, 1, Fwav_to_samples,
+                                            "Read and return vector of samples from wav bytes.\n\n"
+                                            "\(fn wav-bytes)",
+                                            NULL);
   bind_function(env, "esi-core-wav-to-samples", sample_fn);
 
   emacs_value rfft_fn = env->make_function(env, 1, 1,
