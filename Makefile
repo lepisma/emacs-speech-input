@@ -22,6 +22,3 @@ esi-core.so: src/esi-core.c src/esi-io.h src/esi-prep.h lib/libesitorch.so
 
 lib/libesitorch.so: src/esi-torch.cc
 	g++ -std=c++17 $(TORCH_FLAGS) -fPIC -shared src/esi-torch.cc -o $@
-
-pt-test: src/pt-test.cc
-	g++ -std=c++17 $(TORCH_FLAGS) src/pt-test.cc -o $@
