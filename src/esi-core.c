@@ -198,17 +198,20 @@ static emacs_value Fload_embed_model(emacs_env *env, ptrdiff_t n, emacs_value ar
   return env->make_user_ptr(env, NULL, (void *)m);
 }
 
-// Run the embedding model on samples (at 16000) and return fixed length vector
+// Run the embedding model on samples and return fixed length vector
 // - model-user-pointer
 // - samples
+// - sample-rate
 static emacs_value Fembed_model_run(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
   embed_model_t *m = env->get_user_ptr(env, args[0]);
+  size_t sr = env->extract_integer(env, args[2]);
 
   // NOTE: These values are for the currently used model at 16000
-  size_t n_fft = 400;
-  size_t hop_length = 160;
+  double mel_win = 25.0 / 1000.0;
+  double mel_hop = 10.0 / 1000.0;
+  size_t n_fft = floor(sr * mel_win);
+  size_t hop_length = floor(sr * mel_hop);
   size_t n_mels = 40;
-  size_t sr = 16000;
 
   size_t n_samples = env->vec_size(env, args[1]);
   double *samples = malloc(sizeof(double) * n_samples);
@@ -302,10 +305,10 @@ int emacs_module_init(struct emacs_runtime *ert) {
                                                       NULL);
   bind_function(env, "esi-core--load-embed-model", load_embed_model_fn);
 
-  emacs_value embed_model_run_fn = env->make_function(env, 2, 2,
+  emacs_value embed_model_run_fn = env->make_function(env, 3, 3,
                                                      Fembed_model_run,
-                                                     "Run embedding model on given samples (at 16000).\n\n"
-                                                     "\(fn model-user-pointer samples)",
+                                                     "Run embedding model on given samples.\n\n"
+                                                     "\(fn model-user-pointer samples sample-rate)",
                                                      NULL);
   bind_function(env, "esi-core--embed-model-run", embed_model_run_fn);
 
