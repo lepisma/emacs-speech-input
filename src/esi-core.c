@@ -10,7 +10,7 @@
 #include "esi-embed.h"
 
 int plugin_is_GPL_compatible;
-const char *esi_core_version = "0.0.1";
+const char *esi_core_version = "0.0.2";
 
 static emacs_value Fesi_core_version(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
   return env->make_string(env, esi_core_version, strlen(esi_core_version));

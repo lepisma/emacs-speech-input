@@ -6,7 +6,7 @@
 
 (describe "Version"
   (it "is correct"
-    (expect (esi-core-version) :to-equal "0.0.1")))
+    (expect (esi-core-version) :to-equal "0.0.2")))
 
 (defun matrix-from-file (filepath)
   "Read a numpy.savetxt style matrix from given file."
