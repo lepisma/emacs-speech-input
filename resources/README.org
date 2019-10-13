@@ -1,0 +1,16 @@
+#+TITLE: Resources
+
+* embedding-model.pt
+This is a torchscript dump of model from [[https://github.com/resemble-ai/Resemblyzer/commit/ca308cb68cb4f14ebfaad81e3dead2c29a67322b][Resemblyzer]] repository (note the exact
+commit). This was generated using the following:
+
+#+begin_src python
+import torch
+from resemblyzer.voice_encoder import VoiceEncoder 
+
+enc = VoiceEncoder(device="cpu")
+x = torch.rand(1, 10, 40) # 40 is the number of mels
+
+tsmod = torch.jit.trace(enc, x)
+tsmod.save("embedding-model.pt")
+#+end_src
