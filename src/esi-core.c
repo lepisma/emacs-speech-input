@@ -7,6 +7,7 @@
 
 #include "esi-io.h"
 #include "esi-prep.h"
+#include "esi-torch.h"
 
 int plugin_is_GPL_compatible;
 const char *esi_core_version = "0.0.1";
@@ -185,6 +186,18 @@ static emacs_value Fmel_filter(emacs_env *env, ptrdiff_t n, emacs_value args[], 
   return matrix;
 }
 
+static emacs_value Fload_torch_module(emacs_env *env, ptrdiff_t n, emacs_value args[0], void *data) {
+  ptrdiff_t buffer_size;
+  env->copy_string_contents(env, args[0], NULL, &buffer_size);
+
+  char *filepath = malloc(buffer_size);
+  env->copy_string_contents(env, args[0], filepath, &buffer_size);
+
+  torch_module_t* m = load_torch_module(filepath);
+  // TODO: Add a finalizer
+  return env->make_user_ptr(env, NULL, m);
+}
+
 static void provide(emacs_env *env, const char *feature) {
   emacs_value Qfeat = env->intern(env, feature);
   emacs_value Qprovide = env->intern(env, "provide");
@@ -246,6 +259,13 @@ int emacs_module_init(struct emacs_runtime *ert) {
                                                      "\(fn samples-vector sample-rate n-fft hop-length n-mels)",
                                                      NULL);
   bind_function(env, "esi-core--mel-spectrogram", mel_spectrogram_fn);
+
+  emacs_value load_torch_module_fn = env->make_function(env, 1, 1,
+                                                       Fload_torch_module,
+                                                       "Load a torch script module.\n\n"
+                                                       "\(fn file-path)",
+                                                       NULL);
+  bind_function(env, "esi-core--load-torch-module", load_torch_module_fn);
 
   provide(env, "esi-core");
 
