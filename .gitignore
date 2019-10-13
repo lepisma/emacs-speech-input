@@ -12,3 +12,4 @@
 /.ccls-cache
 *.so
 /tests/test-prep
+/scratch.el
