@@ -7,7 +7,7 @@
 
 #include "esi-io.h"
 #include "esi-prep.h"
-#include "esi-torch.h"
+#include "esi-embed.h"
 
 int plugin_is_GPL_compatible;
 const char *esi_core_version = "0.0.1";
@@ -186,16 +186,48 @@ static emacs_value Fmel_filter(emacs_env *env, ptrdiff_t n, emacs_value args[], 
   return matrix;
 }
 
-static emacs_value Fload_torch_module(emacs_env *env, ptrdiff_t n, emacs_value args[0], void *data) {
+static emacs_value Fload_embed_model(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
   ptrdiff_t buffer_size;
   env->copy_string_contents(env, args[0], NULL, &buffer_size);
 
   char *filepath = malloc(buffer_size);
   env->copy_string_contents(env, args[0], filepath, &buffer_size);
 
-  torch_module_t* m = load_torch_module(filepath);
+  embed_model_t* m = load_embed_model(filepath);
   // TODO: Add a finalizer
-  return env->make_user_ptr(env, NULL, m);
+  return env->make_user_ptr(env, NULL, (void *)m);
+}
+
+// Run the embedding model and return fixed length vector
+// - model-user-pointer
+// - samples
+// - sample rate
+static emacs_value Fembed_model_run(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
+  embed_model_t *m = env->get_user_ptr(env, args[0]);
+
+  size_t sr = env->extract_integer(env, args[2]);
+  size_t n_fft = 2048;
+  size_t hop_length = 512;
+  size_t n_mels = 40;
+
+  size_t n_samples = env->vec_size(env, args[1]);
+  double *samples = malloc(sizeof(double) * n_samples);
+  for (size_t i = 0; i < n_samples; i++) {
+    samples[i] = env->extract_float(env, env->vec_get(env, args[1], i));
+  }
+
+  size_t n_cols;
+  double *msg_matrix = melspectrogram(samples, n_samples, sr, n_fft, hop_length, n_mels, &n_cols);
+
+  size_t embedding_size;
+  double* embedding = embed_model_run(m, msg_matrix, n_cols, &embedding_size);
+
+  emacs_value vector = make_vector(env, embedding_size, 0);
+  for (size_t i = 0; i < embedding_size; i++) {
+    env->vec_set(env, vector, i, env->make_float(env, embedding[i]));
+  }
+
+  return vector;
 }
 
 static void provide(emacs_env *env, const char *feature) {
@@ -260,12 +292,19 @@ int emacs_module_init(struct emacs_runtime *ert) {
                                                      NULL);
   bind_function(env, "esi-core--mel-spectrogram", mel_spectrogram_fn);
 
-  emacs_value load_torch_module_fn = env->make_function(env, 1, 1,
-                                                       Fload_torch_module,
-                                                       "Load a torch script module.\n\n"
-                                                       "\(fn file-path)",
-                                                       NULL);
-  bind_function(env, "esi-core--load-torch-module", load_torch_module_fn);
+  emacs_value load_embed_model_fn = env->make_function(env, 1, 1,
+                                                      Fload_embed_model,
+                                                      "Load speech embedding model.\n\n"
+                                                      "\(fn file-path)",
+                                                      NULL);
+  bind_function(env, "esi-core--load-embed-model", load_embed_model_fn);
+
+  emacs_value embed_model_run_fn = env->make_function(env, 3, 3,
+                                                     Fembed_model_run,
+                                                     "Run embedding model on given samples.\n\n"
+                                                     "\(fn model-user-pointer samples sample-rate)",
+                                                     NULL);
+  bind_function(env, "esi-core--embed-model-run", embed_model_run_fn);
 
   provide(env, "esi-core");
 
