@@ -198,17 +198,17 @@ static emacs_value Fload_embed_model(emacs_env *env, ptrdiff_t n, emacs_value ar
   return env->make_user_ptr(env, NULL, (void *)m);
 }
 
-// Run the embedding model and return fixed length vector
+// Run the embedding model on samples (at 16000) and return fixed length vector
 // - model-user-pointer
 // - samples
-// - sample rate
 static emacs_value Fembed_model_run(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
   embed_model_t *m = env->get_user_ptr(env, args[0]);
 
-  size_t sr = env->extract_integer(env, args[2]);
-  size_t n_fft = 2048;
-  size_t hop_length = 512;
+  // NOTE: These values are for the currently used model at 16000
+  size_t n_fft = 400;
+  size_t hop_length = 160;
   size_t n_mels = 40;
+  size_t sr = 16000;
 
   size_t n_samples = env->vec_size(env, args[1]);
   double *samples = malloc(sizeof(double) * n_samples);
@@ -227,6 +227,9 @@ static emacs_value Fembed_model_run(emacs_env *env, ptrdiff_t n, emacs_value arg
     env->vec_set(env, vector, i, env->make_float(env, embedding[i]));
   }
 
+  free(samples);
+  free(msg_matrix);
+  free(embedding);
   return vector;
 }
 
@@ -299,10 +302,10 @@ int emacs_module_init(struct emacs_runtime *ert) {
                                                       NULL);
   bind_function(env, "esi-core--load-embed-model", load_embed_model_fn);
 
-  emacs_value embed_model_run_fn = env->make_function(env, 3, 3,
+  emacs_value embed_model_run_fn = env->make_function(env, 2, 2,
                                                      Fembed_model_run,
-                                                     "Run embedding model on given samples.\n\n"
-                                                     "\(fn model-user-pointer samples sample-rate)",
+                                                     "Run embedding model on given samples (at 16000).\n\n"
+                                                     "\(fn model-user-pointer samples)",
                                                      NULL);
   bind_function(env, "esi-core--embed-model-run", embed_model_run_fn);
 

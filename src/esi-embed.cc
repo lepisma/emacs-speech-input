@@ -25,8 +25,18 @@ double* embed_model_run(embed_model_t* m, double* mel_sg, size_t n_frames, size_
   // model = static_cast<torch::jit::script::Module*>(m->obj);
 
   std::vector<torch::jit::IValue> inputs;
-  // inputs.push_back(torch::from_blob(x, {1, n_rows, n_cols}));
-  inputs.push_back(torch::rand({1, 10, 40}));
+  size_t n_mels = 40;
+
+  // NOTE: Float is needed for compute
+  float* mel_sg_f = (float*)malloc(n_frames * n_mels * sizeof(float));
+  for (size_t i = 0; i < n_frames * n_mels; i++) {
+      mel_sg_f[i] = mel_sg[i];
+  }
+
+  // NOTE: The transpose is needed because of general librosa style dimension
+  //       ordering.
+  auto mel_sg_tensor = torch::from_blob(mel_sg_f, {1, n_mels, n_frames});
+  inputs.push_back(at::transpose(mel_sg_tensor, 1, 2));
 
   *n_out = 256;
   at::Tensor output = gmod->forward(inputs).toTensor();
@@ -37,6 +47,7 @@ double* embed_model_run(embed_model_t* m, double* mel_sg, size_t n_frames, size_
     output_vector[i] = slice[i].item().toDouble();
   }
 
+  free(mel_sg_f);
   return output_vector;
 }
 
