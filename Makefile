@@ -7,7 +7,7 @@ test: tests/test-prep
 	tests/test-prep
 	touch tests/test-prep.c
 
-LIBS = -lsndfile -lfftw3 -lm -lcblas
+LIBS = -lsndfile -lfftw3 -lm -lcblas -lsoundio
 
 TORCH_DIR = ./resources/libtorch
 TORCH_FLAGS = -I $(TORCH_DIR)/include -L $(TORCH_DIR)/lib -L ./lib \
