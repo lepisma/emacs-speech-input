@@ -216,6 +216,13 @@ static emacs_value Fstop_recording(emacs_env *env, ptrdiff_t n, emacs_value args
   //
 }
 
+// Synthesize and play speech generated for given text
+// Arguments as of now:
+// - text (string)
+static emacs_value Fread_text(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
+  //
+}
+
 // Run the embedding model on samples and return fixed length vector
 // - model-user-pointer
 // - samples
@@ -351,6 +358,13 @@ int emacs_module_init(struct emacs_runtime *ert) {
                                                     NULL);
 
   bind_function(env, "esi-core--stop-recording", stop_recording_fn);
+
+  emacs_value read_text_fn = env->make_function(env, 1, 1,
+                                               Fread_text,
+                                               "Synthesize and play speech generated for given text.",
+                                               NULL);
+
+  bind_function(env, "esi-core--read-text", read_text_fn);
 
   provide(env, "esi-core");
 
