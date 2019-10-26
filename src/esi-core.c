@@ -198,6 +198,24 @@ static emacs_value Fload_embed_model(emacs_env *env, ptrdiff_t n, emacs_value ar
   return env->make_user_ptr(env, NULL, (void *)m);
 }
 
+// Start audio recording
+// Arguments:
+// - sample-rate
+// - buffer-duration (in seconds)
+static emacs_value Fstart_recording(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
+  //
+}
+
+// Return current value of audio recording buffer
+static emacs_value Fread_recording_buffer(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
+  //
+}
+
+// Stop the ongoing recording altogether and return buffer
+static emacs_value Fstop_recording(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
+  //
+}
+
 // Run the embedding model on samples and return fixed length vector
 // - model-user-pointer
 // - samples
@@ -311,6 +329,28 @@ int emacs_module_init(struct emacs_runtime *ert) {
                                                      "\(fn model-user-pointer samples sample-rate)",
                                                      NULL);
   bind_function(env, "esi-core--embed-model-run", embed_model_run_fn);
+
+  emacs_value start_recording_fn = env->make_function(env, 2, 2,
+                                                     Fstart_recording,
+                                                     "Start audio recording with given sample-rate and buffer duration in seconds.\n\n"
+                                                     "\(fn sample-rate buffer-duration)",
+                                                     NULL);
+
+  bind_function(env, "esi-core--start-recording", start_recording_fn);
+
+  emacs_value read_recording_buffer_fn = env->make_function(env, 0, 0,
+                                                           Fread_recording_buffer,
+                                                           "Return current audio recording buffer.",
+                                                           NULL);
+
+  bind_function(env, "esi-core--read-recording-buffer", read_recording_buffer_fn);
+
+  emacs_value stop_recording_fn = env->make_function(env, 0, 0,
+                                                    Fstop_recording,
+                                                    "Stop the ongoing recording and return buffer.",
+                                                    NULL);
+
+  bind_function(env, "esi-core--stop-recording", stop_recording_fn);
 
   provide(env, "esi-core");
 
