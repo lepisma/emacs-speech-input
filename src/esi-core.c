@@ -216,12 +216,14 @@ static emacs_value Fstart_recording(emacs_env *env, ptrdiff_t n, emacs_value arg
 
 // Return current value of audio recording buffer
 static emacs_value Fread_recording_buffer(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
-  //
+  checkpoint_recording();
+  return env->make_integer(env, 0);
 }
 
 // Stop the ongoing recording altogether and return buffer
 static emacs_value Fstop_recording(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
-  //
+  stop_recording();
+  return env->make_integer(env, 0);
 }
 
 // Synthesize and play speech generated for given text

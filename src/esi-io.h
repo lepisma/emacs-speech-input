@@ -169,6 +169,8 @@ size_t buffer_read(struct buffer* buf, char* output) {
 
 struct RecordContext {
   struct buffer *buf;
+  struct SoundIo *soundio;
+  struct SoundIoDevice *selected_device;
 };
 
 void recording_read_callback(struct SoundIoInStream *instream, int frame_count_min, int frame_count_max) {
@@ -225,24 +227,41 @@ volatile pthread_mutex_t recording_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_t recording_thread;
 
 void *recording_thread_fn(void *arg) {
-  struct SoundIo *soundio = (struct SoundIo*)(arg);
+  struct SoundIoInStream *instream = (struct SoundIoInStream*)arg;
+  struct RecordContext *rc = instream->userdata;
 
   while (keep_recording_flag) {
-    soundio_flush_events(soundio);
+    soundio_flush_events(rc->soundio);
     sleep(1);
 
     if (save_recording_flag) {
       // TODO: Save to a global array here
-      printf("Saving recording");
+      printf("Saving recording\n");
       save_recording_flag = false;
     }
   }
 
+  printf("Stopping recording\n");
+  soundio_instream_destroy(instream);
+  soundio_device_unref(rc->selected_device);
+  soundio_destroy(rc->soundio);
+  buffer_destroy(rc->buf);
+
   pthread_exit(NULL);
+}
+
+bool checkpoint_recording() {
+  save_recording_flag = true;
+}
+
+bool stop_recording() {
+  keep_recording_flag = false;
 }
 
 // Start a global recording thing.
 bool start_recording(size_t sample_rate, size_t buffer_duration_seconds, char* output_buffer) {
+  keep_recording_flag = true;
+
   enum SoundIoBackend backend = SoundIoBackendPulseAudio;
   enum SoundIoFormat fmt = SoundIoFormatS16LE;
   struct RecordContext *rc = malloc(sizeof(struct RecordContext));
@@ -298,25 +317,21 @@ bool start_recording(size_t sample_rate, size_t buffer_duration_seconds, char* o
 
   size_t buffer_capacity = buffer_duration_seconds * instream->sample_rate * instream->bytes_per_frame;
   rc->buf = buffer_init(buffer_capacity);
+  rc->soundio = soundio;
+  rc->selected_device = selected_device;
 
   if ((err = soundio_instream_start(instream))) {
     fprintf(stderr, "Unable to start input device: %s\n", soundio_strerror(err));
     return false;
   }
 
-  if (pthread_create(&recording_thread, NULL, recording_thread_fn, (void*)(soundio))) {
+  if (pthread_create(&recording_thread, NULL, recording_thread_fn, (void*)(instream))) {
     fprintf(stderr, "Error creating thread\n");
   }
 
   if (pthread_detach(recording_thread)) {
     fprintf(stderr, "Error detaching thread\n");
   }
-
-  // TODO: Do these cleanup somewhere
-  /* soundio_instream_destroy(instream); */
-  /* soundio_device_unref(selected_device); */
-  /* soundio_destroy(soundio); */
-  /* buffer_destroy(rc->buf); */
 
   return true;
 }
