@@ -250,16 +250,16 @@ void *recording_thread_fn(void *arg) {
   pthread_exit(NULL);
 }
 
-bool checkpoint_recording() {
+bool checkpoint_background_recording() {
   save_recording_flag = true;
 }
 
-bool stop_recording() {
+bool stop_background_recording() {
   keep_recording_flag = false;
 }
 
 // Start a global recording thing.
-bool start_recording(size_t sample_rate, size_t buffer_duration_seconds, char* output_buffer) {
+bool start_background_recording(size_t sample_rate, size_t buffer_duration_seconds, char* output_buffer) {
   keep_recording_flag = true;
 
   enum SoundIoBackend backend = SoundIoBackendPulseAudio;

@@ -198,31 +198,37 @@ static emacs_value Fload_embed_model(emacs_env *env, ptrdiff_t n, emacs_value ar
   return env->make_user_ptr(env, NULL, (void *)m);
 }
 
-// Start audio recording. Returns 1 in case of error.
+// Start background audio recording with a max buffer limit. Returns 1 in case of error.
 // TODO: Raise error properly in Emacs.
 // Arguments:
 // - sample-rate
 // - buffer-duration (in seconds)
-static emacs_value Fstart_recording(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
+static emacs_value Fstart_background_recording(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
   size_t sr = env->extract_integer(env, args[0]);
   size_t buffer_duration_seconds = env->extract_integer(env, args[1]);
 
-  if (!start_recording(sr, buffer_duration_seconds, NULL)) {
+  if (!start_background_recording(sr, buffer_duration_seconds, NULL)) {
     return env->make_integer(env, 1);
   }
 
+  // TODO: Instead of integer, return a user pointer pointing to soundio
+  //       instream.
   return env->make_integer(env, 0);
 }
 
 // Return current value of audio recording buffer
-static emacs_value Fread_recording_buffer(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
-  checkpoint_recording();
+static emacs_value Fread_background_recording_buffer(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
+  // TODO: Read buffer without any locks (relying on margin) directly from the
+  //       provided user pointer.
+  checkpoint_background_recording();
   return env->make_integer(env, 0);
 }
 
 // Stop the ongoing recording altogether and return buffer
-static emacs_value Fstop_recording(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
-  stop_recording();
+static emacs_value Fstop_background_recording(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
+  // TODO: Instead of setting global flags, use recording context built from
+  //       start_recording function for marking things as done and cleaning up.
+  stop_background_recording();
   return env->make_integer(env, 0);
 }
 
@@ -347,27 +353,29 @@ int emacs_module_init(struct emacs_runtime *ert) {
                                                      NULL);
   bind_function(env, "esi-core--embed-model-run", embed_model_run_fn);
 
-  emacs_value start_recording_fn = env->make_function(env, 2, 2,
-                                                     Fstart_recording,
-                                                     "Start audio recording with given sample-rate and buffer duration in seconds.\n\n"
-                                                     "\(fn sample-rate buffer-duration)",
-                                                     NULL);
+  emacs_value start_background_recording_fn =
+      env->make_function(env, 2, 2, Fstart_background_recording,
+                         "Start background audio recording with given sample-rate and "
+                         "buffer duration in seconds.\n\n"
+                         "\(fn sample-rate buffer-duration)",
+                         NULL);
 
-  bind_function(env, "esi-core--start-recording", start_recording_fn);
+  bind_function(env, "esi-core--start-background-recording",
+                start_background_recording_fn);
 
-  emacs_value read_recording_buffer_fn = env->make_function(env, 0, 0,
-                                                           Fread_recording_buffer,
-                                                           "Return current audio recording buffer.",
-                                                           NULL);
+  emacs_value read_background_recording_buffer_fn =
+      env->make_function(env, 0, 0, Fread_background_recording_buffer,
+                         "Return background audio recording buffer.", NULL);
 
-  bind_function(env, "esi-core--read-recording-buffer", read_recording_buffer_fn);
+  bind_function(env, "esi-core--read-background-recording-buffer",
+                read_background_recording_buffer_fn);
 
-  emacs_value stop_recording_fn = env->make_function(env, 0, 0,
-                                                    Fstop_recording,
-                                                    "Stop the ongoing recording and return buffer.",
-                                                    NULL);
+  emacs_value stop_background_recording_fn =
+      env->make_function(env, 0, 0, Fstop_background_recording,
+                         "Stop the ongoing background recording and return buffer.", NULL);
 
-  bind_function(env, "esi-core--stop-recording", stop_recording_fn);
+  bind_function(env, "esi-core--stop-background-recording",
+                stop_background_recording_fn);
 
   emacs_value read_text_fn = env->make_function(env, 1, 1,
                                                Fread_text,
