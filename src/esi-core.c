@@ -198,12 +198,20 @@ static emacs_value Fload_embed_model(emacs_env *env, ptrdiff_t n, emacs_value ar
   return env->make_user_ptr(env, NULL, (void *)m);
 }
 
-// Start audio recording
+// Start audio recording. Returns 1 in case of error.
+// TODO: Raise error properly in Emacs.
 // Arguments:
 // - sample-rate
 // - buffer-duration (in seconds)
 static emacs_value Fstart_recording(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
-  //
+  size_t sr = env->extract_integer(env, args[0]);
+  size_t buffer_duration_seconds = env->extract_integer(env, args[1]);
+
+  if (!start_recording(sr, buffer_duration_seconds, NULL)) {
+    return env->make_integer(env, 1);
+  }
+
+  return env->make_integer(env, 0);
 }
 
 // Return current value of audio recording buffer
