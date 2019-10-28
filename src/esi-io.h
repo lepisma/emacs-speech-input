@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <pthread.h>
 
 typedef struct {
   sf_count_t offset, length;
@@ -170,10 +171,7 @@ struct RecordContext {
   struct buffer *buf;
 };
 
-static volatile bool keep_recording_flag = true;
-static volatile bool save_recording_flag = false;
-
-static void recording_read_callback(struct SoundIoInStream *instream, int frame_count_min, int frame_count_max) {
+void recording_read_callback(struct SoundIoInStream *instream, int frame_count_min, int frame_count_max) {
   struct RecordContext *rc = instream->userdata;
   struct SoundIoChannelArea *areas;
   int err;
@@ -216,41 +214,18 @@ static void recording_read_callback(struct SoundIoInStream *instream, int frame_
   }
 }
 
-static void recording_overflow_callback(struct SoundIoInStream *instream) {
+void recording_overflow_callback(struct SoundIoInStream *instream) {
   static int count = 0;
   fprintf(stderr, "overflow %d\n", ++count);
 }
 
-// Start a global recording thing.
-bool start_recording(size_t sample_rate, size_t buffer_duration_seconds, char* output_buffer) {
-  enum SoundIoBackend backend = SoundIoBackendPulseAudio;
-  struct RecordContext rc;
-  struct SoundIo *soundio = soundio_create();
+volatile bool keep_recording_flag = true;
+volatile bool save_recording_flag = false;
+volatile pthread_mutex_t recording_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_t recording_thread;
 
-  soundio_connect_backend(soundio, backend);
-  soundio_flush_events(soundio);
-
-  struct SoundIoDevice *selected_device = NULL;
-
-  int device_index = soundio_default_input_device_index(soundio);
-  selected_device = soundio_get_input_device(soundio, device_index);
-
-  soundio_device_sort_channel_layouts(selected_device);
-
-  enum SoundIoFormat fmt = SoundIoFormatS16LE;
-
-  struct SoundIoInStream *instream = soundio_instream_create(selected_device);
-  instream->format = fmt;
-  instream->sample_rate = sample_rate;
-  instream->read_callback = recording_read_callback;
-  instream->overflow_callback = recording_overflow_callback;
-  instream->userdata = &rc;
-
-  soundio_instream_open(instream);
-
-  size_t buffer_capacity = buffer_duration_seconds * instream->sample_rate * instream->bytes_per_frame;
-  rc.buf = buffer_init(buffer_capacity);
-  soundio_instream_start(instream);
+void *recording_thread_fn(void *arg) {
+  struct SoundIo *soundio = (struct SoundIo*)(arg);
 
   while (keep_recording_flag) {
     soundio_flush_events(soundio);
@@ -263,12 +238,85 @@ bool start_recording(size_t sample_rate, size_t buffer_duration_seconds, char* o
     }
   }
 
-  printf("Stopping recording");
+  pthread_exit(NULL);
+}
 
-  soundio_instream_destroy(instream);
-  soundio_device_unref(selected_device);
-  soundio_destroy(soundio);
-  buffer_destroy(rc.buf);
+// Start a global recording thing.
+bool start_recording(size_t sample_rate, size_t buffer_duration_seconds, char* output_buffer) {
+  enum SoundIoBackend backend = SoundIoBackendPulseAudio;
+  enum SoundIoFormat fmt = SoundIoFormatS16LE;
+  struct RecordContext *rc = malloc(sizeof(struct RecordContext));
+  struct SoundIo *soundio = soundio_create();
+  int err;
+
+  if (!soundio) {
+    fprintf(stderr, "OOM while creating soundio\n");
+    return false;
+  }
+
+  if (soundio_connect_backend(soundio, backend)) {
+    fprintf(stderr, "Error connecting: %s\n", soundio_strerror(err));
+    return false;
+  }
+
+  soundio_flush_events(soundio);
+
+  struct SoundIoDevice *selected_device = NULL;
+
+  int device_index = soundio_default_input_device_index(soundio);
+  selected_device = soundio_get_input_device(soundio, device_index);
+
+  if (!selected_device) {
+    fprintf(stderr, "No input devices available\n");
+    return false;
+  }
+
+  if (selected_device->probe_error) {
+    fprintf(stderr, "Unable to probe device: %s\n", soundio_strerror(selected_device->probe_error));
+    return false;
+  }
+
+  soundio_device_sort_channel_layouts(selected_device);
+
+  struct SoundIoInStream *instream = soundio_instream_create(selected_device);
+
+  if (!instream) {
+    fprintf(stderr, "OOM while creating instream\n");
+    return false;
+  }
+
+  instream->format = fmt;
+  instream->sample_rate = sample_rate;
+  instream->read_callback = recording_read_callback;
+  instream->overflow_callback = recording_overflow_callback;
+  instream->userdata = rc;
+
+  if ((err = soundio_instream_open(instream))) {
+    fprintf(stderr, "Unable to open input stream: %s\n", soundio_strerror(err));
+    return false;
+  }
+
+  size_t buffer_capacity = buffer_duration_seconds * instream->sample_rate * instream->bytes_per_frame;
+  rc->buf = buffer_init(buffer_capacity);
+
+  if ((err = soundio_instream_start(instream))) {
+    fprintf(stderr, "Unable to start input device: %s\n", soundio_strerror(err));
+    return false;
+  }
+
+  if (pthread_create(&recording_thread, NULL, recording_thread_fn, (void*)(soundio))) {
+    fprintf(stderr, "Error creating thread\n");
+  }
+
+  if (pthread_detach(recording_thread)) {
+    fprintf(stderr, "Error detaching thread\n");
+  }
+
+  // TODO: Do these cleanup somewhere
+  /* soundio_instream_destroy(instream); */
+  /* soundio_device_unref(selected_device); */
+  /* soundio_destroy(soundio); */
+  /* buffer_destroy(rc->buf); */
 
   return true;
 }
