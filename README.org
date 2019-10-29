@@ -37,9 +37,15 @@ For a flight recorder type always on background recording, use the following:
   
   ;; Save last 10 seconds of audio to a file
   (let ((pcm-bytes (esi-core--read-background-recording-buffer)))
-    (f-write-text data 'utf-8- "output-file.pcm"))
+    (f-write-text data 'utf-8 "output-file.pcm"))
 
   (esi-core--stop-background-recording)
+#+end_src
+
+The audio can then be played back using something like the following:
+
+#+begin_src shell
+play -t raw -r 16k -c 2 -b 16 -e signed -L output-file.pcm
 #+end_src
 
 ** Transcriptions
