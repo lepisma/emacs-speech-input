@@ -1,17 +1,8 @@
 #+TITLE: Emacs Speech Input
 
-Personal set of tools for involving speech while working with Emacs. Once
-stable, this place should provide a consistent API involving various kinds of
-speech based acts and delegate to various backends.
-
-The API will cover pieces like:
-1. Voice activity detection
-2. Hot word detection
-3. Speaker Verification
-4. Regular utterance transcription
-
-For now, I am trying to set up a regular command-and-control stuff based on 4th
-method using a kaldi backend.
+Personal set of tools for involving speech input and output while working with
+Emacs. Once stable, this place should provide a consistent API involving various
+kinds of speech based acts.
 
 * Building
 Currently the program has following dependencies:
@@ -21,6 +12,7 @@ Currently the program has following dependencies:
 2. fftw3
 3. sndfile
 4. cmocka for testing
+5. libsoundio
 
 Once libraries are present (default-ish paths), run ~make~ to build the
 ~esi-core.so~ dynamic module. Emacs dependencies are managed using cask so you
@@ -30,8 +22,28 @@ For running tests, do ~make test~.
 
 * Usage
 
+** Recording
+For foreground recording, use ~esi-record~ function which returns /wav/ bytes. To
+convert it to floating point samples, use ~esi-core-wav-to-samples~.
+
+For a flight recorder type always on background recording, use the following:
+
+#+begin_src emacs-lisp
+  (require 'esi-core)
+  (require 'f)
+
+  ;; Start background recording with 10 seconds buffer
+  (esi-core--start-background-recording 16000 10)
+  
+  ;; Save last 10 seconds of audio to a file
+  (let ((pcm-bytes (esi-core--read-background-recording-buffer)))
+    (f-write-text data 'utf-8- "output-file.pcm"))
+
+  (esi-core--stop-background-recording)
+#+end_src
+
 ** Transcriptions
-A basic method working to get utterance transcription is:
+A basic method working to get utterance transcription using [[https://github.com/Vernacular-ai/kaldi-serve][kaldi-serve]] is:
 
 #+begin_src emacs-lisp :exports both :results output
 (print (esi-kaldi-transcribe (esi-record)))
