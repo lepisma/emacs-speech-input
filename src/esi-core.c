@@ -207,6 +207,11 @@ static emacs_value Fstart_background_recording(emacs_env *env, ptrdiff_t n, emac
   size_t sr = env->extract_integer(env, args[0]);
   size_t buffer_duration_seconds = env->extract_integer(env, args[1]);
 
+  if (instream) {
+    fprintf(stderr, "Recording already on.\n");
+    return env->make_integer(env, 1);
+  }
+
   if (!start_background_recording(sr, buffer_duration_seconds, NULL)) {
     return env->make_integer(env, 1);
   }
@@ -220,6 +225,11 @@ static emacs_value Fstart_background_recording(emacs_env *env, ptrdiff_t n, emac
 static emacs_value Fread_background_recording_buffer(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
   // TODO: Read buffer without any locks (relying on margin) directly from the
   //       provided user pointer.
+  if (!instream) {
+    fprintf(stderr, "Recording not happening.\n");
+    return env->make_string(env, "", 0);
+  }
+
   size_t output_size;
   struct RecordContext *rc = (struct RecordContext*)(instream->userdata);
   char* output = buffer_read(rc->buf, &output_size);

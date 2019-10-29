@@ -246,6 +246,7 @@ void *recording_thread_fn(void *arg) {
   soundio_device_unref(rc->selected_device);
   soundio_destroy(rc->soundio);
   buffer_destroy(rc->buf);
+  instream = NULL;
 
   pthread_exit(NULL);
 }
