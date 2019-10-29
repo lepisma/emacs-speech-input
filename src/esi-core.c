@@ -220,8 +220,10 @@ static emacs_value Fstart_background_recording(emacs_env *env, ptrdiff_t n, emac
 static emacs_value Fread_background_recording_buffer(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
   // TODO: Read buffer without any locks (relying on margin) directly from the
   //       provided user pointer.
-  checkpoint_background_recording();
-  return env->make_integer(env, 0);
+  size_t output_size;
+  struct RecordContext *rc = (struct RecordContext*)(instream->userdata);
+  char* output = buffer_read(rc->buf, &output_size);
+  return env->make_string(env, output, output_size);
 }
 
 // Stop the ongoing recording altogether and return buffer

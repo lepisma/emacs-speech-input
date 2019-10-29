@@ -156,15 +156,19 @@ bool buffer_write(struct buffer* buf, char* data, size_t data_len) {
   return true;
 }
 
-// Read upto a max of capacity from buffer and return the number of bytes read.
-size_t buffer_read(struct buffer* buf, char* output) {
+// Read upto a max of capacity chars from buffer.
+char* buffer_read(struct buffer* buf, size_t *output_size) {
+  char* output = malloc(sizeof(char) * buf->capacity);
+
   size_t offset = buf->read_offset;
   size_t buffer_length = buf->capacity + buf->margin;
 
   for (size_t i = 0; i < buf->capacity; i++) {
     output[i] = buf->array[(offset + i) % buffer_length];
   }
-  return buf->capacity;
+
+  *output_size = buf->capacity;
+  return output;
 }
 
 struct RecordContext {
@@ -222,23 +226,19 @@ void recording_overflow_callback(struct SoundIoInStream *instream) {
 }
 
 volatile bool keep_recording_flag = true;
-volatile bool save_recording_flag = false;
 volatile pthread_mutex_t recording_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_t recording_thread;
 
+// TODO: Move this to a user pointer
+struct SoundIoInStream *instream = NULL;
+
 void *recording_thread_fn(void *arg) {
-  struct SoundIoInStream *instream = (struct SoundIoInStream*)arg;
+  /* struct SoundIoInStream *instream = (struct SoundIoInStream*)arg; */
   struct RecordContext *rc = instream->userdata;
 
   while (keep_recording_flag) {
     soundio_flush_events(rc->soundio);
     sleep(1);
-
-    if (save_recording_flag) {
-      // TODO: Save to a global array here
-      printf("Saving recording\n");
-      save_recording_flag = false;
-    }
   }
 
   printf("Stopping recording\n");
@@ -248,10 +248,6 @@ void *recording_thread_fn(void *arg) {
   buffer_destroy(rc->buf);
 
   pthread_exit(NULL);
-}
-
-bool checkpoint_background_recording() {
-  save_recording_flag = true;
 }
 
 bool stop_background_recording() {
@@ -297,7 +293,7 @@ bool start_background_recording(size_t sample_rate, size_t buffer_duration_secon
 
   soundio_device_sort_channel_layouts(selected_device);
 
-  struct SoundIoInStream *instream = soundio_instream_create(selected_device);
+  instream = soundio_instream_create(selected_device);
 
   if (!instream) {
     fprintf(stderr, "OOM while creating instream\n");
