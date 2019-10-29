@@ -1,5 +1,7 @@
 #+TITLE: Emacs Speech Input
 
+#+HTML: <img alt="GitHub" src="https://img.shields.io/github/license/lepisma/emacs-speech-input?style=flat-square">
+
 Personal set of tools for involving speech input and output while working with
 Emacs. Once stable, this place should provide a consistent API involving various
 kinds of speech based acts.
