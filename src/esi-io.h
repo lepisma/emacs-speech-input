@@ -226,7 +226,7 @@ void recording_overflow_callback(struct SoundIoInStream *instream) {
 }
 
 volatile bool keep_recording_flag = true;
-volatile pthread_mutex_t recording_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t recording_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_t recording_thread;
 
 // TODO: Move this to a user pointer
@@ -235,6 +235,8 @@ struct SoundIoInStream *instream = NULL;
 void *recording_thread_fn(void *arg) {
   /* struct SoundIoInStream *instream = (struct SoundIoInStream*)arg; */
   struct RecordContext *rc = instream->userdata;
+
+  pthread_mutex_lock(&recording_lock);
 
   while (keep_recording_flag) {
     soundio_flush_events(rc->soundio);
@@ -248,11 +250,15 @@ void *recording_thread_fn(void *arg) {
   buffer_destroy(rc->buf);
   instream = NULL;
 
+  pthread_mutex_unlock(&recording_lock);
+
   pthread_exit(NULL);
 }
 
 bool stop_background_recording() {
   keep_recording_flag = false;
+  pthread_mutex_lock(&recording_lock);
+  pthread_mutex_unlock(&recording_lock);
 }
 
 // Start a global recording thing.
