@@ -212,7 +212,7 @@ static emacs_value Fstart_background_recording(emacs_env *env, ptrdiff_t n, emac
   size_t sr = env->extract_integer(env, args[0]);
   size_t buffer_duration_seconds = env->extract_integer(env, args[1]);
 
-  struct SoundIoInStream *instream = start_background_recording(sr, buffer_duration_seconds, NULL);
+  struct SoundIoInStream *instream = start_background_recording(sr, buffer_duration_seconds);
 
   if (instream) {
     return env->make_user_ptr(env, fin_instream, instream);
@@ -224,9 +224,10 @@ static emacs_value Fstart_background_recording(emacs_env *env, ptrdiff_t n, emac
 // Return current value of provided recording context
 static emacs_value Fread_background_recording_buffer(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
   struct SoundIoInStream *instream = (struct SoundIoInStream*)env->get_user_ptr(env, args[0]);
+
   size_t output_size;
-  struct RecordContext *rc = (struct RecordContext*)(instream->userdata);
-  char* output = buffer_read(rc->buf, &output_size);
+  char* output = read_background_recording(instream, &output_size);
+
   return env->make_string(env, output, output_size);
 }
 
