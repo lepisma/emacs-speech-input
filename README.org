@@ -35,13 +35,13 @@ For a flight recorder type always on background recording, use the following:
   (require 'f)
 
   ;; Start background recording with 10 seconds buffer
-  (esi-core--start-background-recording 16000 10)
+  (setq instream (esi-core--start-background-recording 16000 10))
   
   ;; Save last 10 seconds of audio to a file
-  (let ((pcm-bytes (esi-core--read-background-recording-buffer)))
+  (let ((pcm-bytes (esi-core--read-background-recording-buffer instream)))
     (f-write-text data 'utf-8 "output-file.pcm"))
 
-  (esi-core--stop-background-recording)
+  (esi-core--stop-background-recording instream)
 #+end_src
 
 The audio can then be played back using something like the following:

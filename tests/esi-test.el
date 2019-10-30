@@ -70,3 +70,19 @@
     (let ((samples (esi-utils-load-array "tests/resources/hello.samples"))
           (true-spectrogram (esi-utils-load-array "tests/resources/hello.mel.spectrogram")))
       (expect (matrix-approx-equal true-spectrogram (esi-core--mel-spectrogram samples 8000 2048 512 40))))))
+
+(describe "Background recording"
+  :var (filepath instream)
+  (before-all
+    (setq filepath (make-temp-file "esi-audio-test")
+          instream (esi-core--start-background-recording 44100 2)))
+
+  (after-all
+    (delete-file filepath)
+    (esi-core--stop-background-recording instream))
+
+  (it "works without errors"
+    (let ((data (esi-core--read-background-recording-buffer instream)))
+      (f-write-text data 'utf-8 filepath)
+      (expect (string-to-number (alist-get 'duration (ffprobe filepath "-f" "s16le" "-ar" "44.1k" "-ac" "2")))
+              :to-equal 2.0))))
