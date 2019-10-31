@@ -51,7 +51,7 @@ NOTE: We assume that vectors are coming from the embedding model
     (unless (file-exists-p model-path)
       (error "Model file not found at %s" model-path))
     (unless esi-embed--model
-      (setq esi-embed--model (esi-core--load-embed-model model-path)))))\
+      (setq esi-embed--model (esi-core--load-embed-model model-path)))))
 
 (defun esi-embed--embed-utterance (&optional sample-rate)
   "Record an utterance and return embedding for it."
