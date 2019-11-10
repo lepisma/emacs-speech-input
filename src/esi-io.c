@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include "esi-io.h"
 
 typedef struct {
@@ -230,9 +231,13 @@ void *recording_poll_fn(void *arg) {
   struct SoundIoInStream *instream = (struct SoundIoInStream*)arg;
   struct RecordContext *rc = instream->userdata;
 
+  struct timespec tim, tim_e;
+  tim.tv_sec = 0;
+  tim.tv_nsec = 100000000L; // 100 ms
+
   while (rc->keep_recording) {
     soundio_flush_events(rc->soundio);
-    sleep(1);
+    nanosleep(&tim, &tim_e);
   }
 
   soundio_instream_destroy(instream);
