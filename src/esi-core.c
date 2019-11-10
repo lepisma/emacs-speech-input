@@ -204,7 +204,6 @@ static void fin_instream(void *instream_ut) {
 }
 
 // Start background audio recording with a max buffer limit. Return 1 in case of error.
-// TODO: Raise error properly in Emacs.
 // Arguments:
 // - sample-rate
 // - buffer-duration (in seconds)
@@ -217,7 +216,7 @@ static emacs_value Fstart_background_recording(emacs_env *env, ptrdiff_t n, emac
   if (instream) {
     return env->make_user_ptr(env, fin_instream, instream);
   } else {
-    return env->make_integer(env, 1);
+    return env->intern(env, "nil");
   }
 }
 
@@ -235,14 +234,7 @@ static emacs_value Fread_background_recording_buffer(emacs_env *env, ptrdiff_t n
 static emacs_value Fstop_background_recording(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
   struct SoundIoInStream *instream = (struct SoundIoInStream *)env->get_user_ptr(env, args[0]);
   stop_background_recording(instream);
-  return env->make_integer(env, 0);
-}
-
-// Synthesize and play speech generated for given text
-// Arguments as of now:
-// - text (string)
-static emacs_value Fread_text(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
-  //
+  return env->intern(env, "nil");
 }
 
 // Run the embedding model on samples and return fixed length vector
@@ -384,13 +376,6 @@ int emacs_module_init(struct emacs_runtime *ert) {
 
   bind_function(env, "esi-core--stop-background-recording",
                 stop_background_recording_fn);
-
-  emacs_value read_text_fn = env->make_function(env, 1, 1,
-                                               Fread_text,
-                                               "Synthesize and play speech generated for given text.",
-                                               NULL);
-
-  bind_function(env, "esi-core--read-text", read_text_fn);
 
   provide(env, "esi-core");
 
