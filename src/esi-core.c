@@ -217,7 +217,7 @@ static emacs_value Fstart_background_recording(emacs_env *env, ptrdiff_t n, emac
     return env->make_user_ptr(env, fin_instream, instream);
   } else {
     emacs_value nil = env->intern(env, "nil");
-    env->non_local_exit_signal(env, env->intern(env, "error in creating audio input stream"), nil);
+    env->non_local_exit_signal(env, env->intern(env, "audio-input-stream-error"), nil);
     return nil;
   }
 }
@@ -234,14 +234,22 @@ static emacs_value Fread_background_recording_buffer(emacs_env *env, ptrdiff_t n
 
 // Stop the ongoing recording altogether and return buffer
 static emacs_value Fstop_background_recording(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
-  struct SoundIoInStream *instream = (struct SoundIoInStream *)env->get_user_ptr(env, args[0]);
+  struct SoundIoInStream *instream = (struct SoundIoInStream *)(env->get_user_ptr(env, args[0]));
+
+  emacs_value nil = env->intern(env, "nil");
+  if (!instream) {
+    // We put NULL in the value once a user pointer is finished
+    env->non_local_exit_signal(env, env->intern(env, "audio-input-stream-finished"), nil);
+    return nil;
+  }
 
   // Check if we have valid user pointer value
   if (env->non_local_exit_check(env) == emacs_funcall_exit_return) {
     stop_background_recording(instream);
+    env->set_user_ptr(env, args[0], NULL);
   }
 
-  return env->intern(env, "nil");
+  return nil;
 }
 
 // Run the embedding model on samples and return fixed length vector
