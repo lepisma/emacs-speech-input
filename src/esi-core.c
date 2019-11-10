@@ -216,7 +216,9 @@ static emacs_value Fstart_background_recording(emacs_env *env, ptrdiff_t n, emac
   if (instream) {
     return env->make_user_ptr(env, fin_instream, instream);
   } else {
-    return env->intern(env, "nil");
+    emacs_value nil = env->intern(env, "nil");
+    env->non_local_exit_signal(env, env->intern(env, "error in creating audio input stream"), nil);
+    return nil;
   }
 }
 
