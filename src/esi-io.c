@@ -167,12 +167,8 @@ char* chain_buffer_read(struct chain_buffer* buffer) {
 
 // Destroy the buffer starting from the first item in chain.
 void chain_buffer_destroy(struct chain_buffer* buffer) {
-  // TODO: avoid pre loop free.
-  struct chain_buffer* current = buffer;
-  struct chain_buffer* next = current->next;
-
-  free(current->array);
-  free(current);
+  struct chain_buffer* current;
+  struct chain_buffer* next = buffer;
 
   while (next) {
     current = next;
