@@ -26,6 +26,8 @@
 
 ;;; Code:
 
+(require 'json)
+
 ;; HACK: We are using various command line tools to stitch things together for
 ;;       now. This will change once the outer API becomes more clear to me.
 
@@ -51,10 +53,10 @@
   "Transcribe provided file and return everything else."
   (let* ((args (format "--package kaldi_serve --service KaldiServe %s --call Recognize --port 5016" esi-kaldi-serve-proto))
          (audio-data (esi-kaldi-encode-wav-data bytes))
-         (data-json (shell-quote-argument (json-encode `((audio . ((content . ,audio-data))) ,@esi-kaldi-serve-config)))))
-    (json-parse-string (shell-command-to-string (format "echo %s | evans %s" data-json args))
-                       :object-type 'alist
-                       :array-type 'list)))
+         (data-json (shell-quote-argument (json-encode `((audio . ((content . ,audio-data))) ,@esi-kaldi-serve-config))))
+         (json-object-type 'alist)
+         (json-array-type 'list))
+    (json-read-from-string (shell-command-to-string (format "echo %s | evans %s" data-json args)))))
 
 (provide 'esi-kaldi)
 
