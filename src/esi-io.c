@@ -106,6 +106,9 @@ static int min_int(int a, int b) {
 struct buffer {
   char* array;
   size_t capacity;
+  // Margin is the difference between write pointer and read pointer. If the
+  // difference is sufficient (considering live audio io use case), they won't
+  // step on each other.
   size_t margin;
   size_t write_offset;
   size_t read_offset;
@@ -115,13 +118,8 @@ size_t s_max(size_t a, size_t b) {
   return (b > a) ? b : a;
 }
 
-struct buffer* buffer_init(size_t capacity) {
+struct buffer* buffer_init(size_t capacity, size_t margin) {
   struct buffer* buf = malloc(sizeof(struct buffer));
-
-  // TODO: Make this smaller and adaptive. At present this covers one second of
-  //       float-32 16k audio.
-  size_t margin = s_max(capacity, 32 * 16000);
-
   buf->capacity = capacity;
   buf->margin = margin;
   buf->array = calloc(capacity + margin, sizeof(char));
@@ -304,7 +302,11 @@ struct SoundIoInStream* start_background_recording(size_t sample_rate, size_t bu
   }
 
   size_t buffer_capacity = buffer_duration_seconds * instream->sample_rate * instream->bytes_per_frame;
-  rc->buf = buffer_init(buffer_capacity);
+
+  // Assuming 32 bytes per sample and 5 second margin for a rough bound
+  size_t margin = 5 * 32 * sample_rate;
+
+  rc->buf = buffer_init(buffer_capacity, margin);
   rc->soundio = soundio;
   rc->selected_device = selected_device;
   rc->keep_recording = true;
