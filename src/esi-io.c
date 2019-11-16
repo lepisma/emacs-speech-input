@@ -151,7 +151,7 @@ size_t chain_buffer_filled_length(struct chain_buffer* buffer) {
 
   struct chain_buffer* current = buffer;
   while (current) {
-    length = length + current.length;
+    length = length + current->length;
     current = buffer->next;
   }
 
