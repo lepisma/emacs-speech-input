@@ -114,8 +114,73 @@ struct buffer {
   size_t read_offset;
 };
 
-size_t s_max(size_t a, size_t b) {
-  return (b > a) ? b : a;
+// Buffer chained in a linked list like manner
+struct chain_buffer {
+  char* array;
+  // Capacity tells total bytes which can be kept in this buffer
+  size_t capacity;
+  // Length is the filled size of buffer.
+  size_t length;
+  // Next points to either NULL (end of chain) or next buffer to jump for
+  // putting more data.
+  struct chain_buffer* next;
+};
+
+// Create a new chain buffer of given size without a child.
+struct chain_buffer* chain_buffer_init(size_t capacity) {
+  struct chain_buffer* buf = malloc(sizeof(struct chain_buffer));
+  buf->capacity = capacity;
+  buf->length = 0;
+  buf->array = calloc(capacity, sizeof(char));
+  buf->next = NULL;
+
+  return buf;
+}
+
+// Extend buffer with another buffer of given capacity. Return the new child
+// buffer.
+struct chain_buffer* chain_buffer_extend(struct chain_buffer* buffer, size_t capacity) {
+  struct chain_buffer* child_buffer = chain_buffer_init(capacity);
+  buffer->next = child_buffer;
+  return child_buffer;
+}
+
+// Read the size of all arrays (concatenated) kept in the buffer
+size_t chain_buffer_filled_length(struct chain_buffer* buffer) {
+  size_t length = 0;
+
+  struct chain_buffer* current = buffer;
+  while (current) {
+    length = length + current.length;
+    current = buffer->next;
+  }
+
+  return length;
+}
+
+// Read the complete chain buffer and return a concatenated char array
+char* chain_buffer_read(struct chain_buffer* buffer) {
+  char* array = malloc(sizeof(char) * chain_buffer_filled_length(buffer));
+  // TODO: Implement reading from the chain
+  return array;
+}
+
+// Destroy the buffer starting from the first item in chain.
+void chain_buffer_destroy(struct chain_buffer* buffer) {
+  // TODO: avoid pre loop free.
+  struct chain_buffer* current = buffer;
+  struct chain_buffer* next = current->next;
+
+  free(current->array);
+  free(current);
+
+  while (next) {
+    current = next;
+    next = current->next;
+
+    free(current->array);
+    free(current);
+  }
 }
 
 struct buffer* buffer_init(size_t capacity, size_t margin) {
