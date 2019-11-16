@@ -161,7 +161,19 @@ size_t chain_buffer_filled_length(struct chain_buffer* buffer) {
 // Read the complete chain buffer and return a concatenated char array
 char* chain_buffer_read(struct chain_buffer* buffer) {
   char* array = malloc(sizeof(char) * chain_buffer_filled_length(buffer));
-  // TODO: Implement reading from the chain
+
+  size_t position = 0;
+  struct chain_buffer* current_buffer = buffer;
+  size_t current_length;
+
+  while (current_buffer) {
+    current_length = current_buffer->length;
+    for (size_t i = 0; i < current_length; i++) {
+      array[position + i] = current_buffer->array[i];
+    }
+    position = position + current_length;
+    current_buffer = current_buffer->next;
+  }
   return array;
 }
 
