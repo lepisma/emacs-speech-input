@@ -53,3 +53,4 @@
 
 # End of https://www.gitignore.io/api/c++
 /resources/libtorch
+/dist/
