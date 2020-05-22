@@ -1,11 +1,8 @@
 (source gnu)
 (source melpa)
 
-(depends-on "dash")
-(depends-on "dash-functional")
-(depends-on "f")
-(depends-on "helm")
-(depends-on "s")
+(package-file "esi.el")
+(files "esi*.el" )
 
 (development
  (depends-on "buttercup"))
