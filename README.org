@@ -17,8 +17,9 @@ Currently the program has following dependencies:
 5. libsoundio
 
 Once libraries are present (default-ish paths), run ~make~ to build the
-~esi-core.so~ dynamic module. Emacs dependencies are managed using cask so you
-will need to do a ~cask install~.
+~esi-core.so~ and =esi-embed-core.so= dynamic modules. The latter is only for
+d-vector embedding and needs libtorch. Emacs dependencies are managed using cask
+so you will need to do a ~cask install~.
 
 For running tests, do ~make test~.
 
@@ -68,9 +69,9 @@ We rely on pretrained model from [[https://github.com/resemble-ai/Resemblyzer/co
 speech embeddings. To get embedding vector:
 
 #+begin_src emacs-lisp :exports both :results output
-  (let ((emb-model (esi-core--load-embed-model "./resources/embedding-model.pt"))
+  (let ((emb-model (esi-embed-core--load-model "./resources/embedding-model.pt"))
         (sr 16000))
-    (print (esi-core--embed-model-run emb-model (esi-core-wav-to-samples (esi-record sr)) sr)))
+    (print (esi-embed-core--run-model emb-model (esi-core-wav-to-samples (esi-record sr)) sr)))
 #+end_src
 
 #+RESULTS:
