@@ -7,7 +7,6 @@
 
 #include "esi-io.h"
 #include "esi-prep.h"
-#include "esi-embed.h"
 
 int plugin_is_GPL_compatible;
 const char *esi_core_version = "0.0.2";
@@ -186,18 +185,6 @@ static emacs_value Fmel_filter(emacs_env *env, ptrdiff_t n, emacs_value args[], 
   return matrix;
 }
 
-static emacs_value Fload_embed_model(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
-  ptrdiff_t buffer_size;
-  env->copy_string_contents(env, args[0], NULL, &buffer_size);
-
-  char *filepath = malloc(buffer_size);
-  env->copy_string_contents(env, args[0], filepath, &buffer_size);
-
-  embed_model_t* m = load_embed_model(filepath);
-  // TODO: Add a finalizer
-  return env->make_user_ptr(env, NULL, (void *)m);
-}
-
 static void fin_instream(void *instream_ut) {
   struct SoundIoInStream *instream = (struct SoundIoInStream*)instream_ut;
   stop_background_recording(instream);
@@ -250,44 +237,6 @@ static emacs_value Fstop_background_recording(emacs_env *env, ptrdiff_t n, emacs
   }
 
   return nil;
-}
-
-// Run the embedding model on samples and return fixed length vector
-// - model-user-pointer
-// - samples
-// - sample-rate
-static emacs_value Fembed_model_run(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
-  embed_model_t *m = env->get_user_ptr(env, args[0]);
-  size_t sr = env->extract_integer(env, args[2]);
-
-  // NOTE: These values are for the currently used model at 16000
-  double mel_win = 25.0 / 1000.0;
-  double mel_hop = 10.0 / 1000.0;
-  size_t n_fft = floor(sr * mel_win);
-  size_t hop_length = floor(sr * mel_hop);
-  size_t n_mels = 40;
-
-  size_t n_samples = env->vec_size(env, args[1]);
-  double *samples = malloc(sizeof(double) * n_samples);
-  for (size_t i = 0; i < n_samples; i++) {
-    samples[i] = env->extract_float(env, env->vec_get(env, args[1], i));
-  }
-
-  size_t n_cols;
-  double *msg_matrix = melspectrogram(samples, n_samples, sr, n_fft, hop_length, n_mels, &n_cols);
-
-  size_t embedding_size;
-  double* embedding = embed_model_run(m, msg_matrix, n_cols, &embedding_size);
-
-  emacs_value vector = make_vector(env, embedding_size, 0);
-  for (size_t i = 0; i < embedding_size; i++) {
-    env->vec_set(env, vector, i, env->make_float(env, embedding[i]));
-  }
-
-  free(samples);
-  free(msg_matrix);
-  free(embedding);
-  return vector;
 }
 
 static void provide(emacs_env *env, const char *feature) {
@@ -351,20 +300,6 @@ int emacs_module_init(struct emacs_runtime *ert) {
                                                      "\(fn samples-vector sample-rate n-fft hop-length n-mels)",
                                                      NULL);
   bind_function(env, "esi-core--mel-spectrogram", mel_spectrogram_fn);
-
-  emacs_value load_embed_model_fn = env->make_function(env, 1, 1,
-                                                      Fload_embed_model,
-                                                      "Load speech embedding model.\n\n"
-                                                      "\(fn file-path)",
-                                                      NULL);
-  bind_function(env, "esi-core--load-embed-model", load_embed_model_fn);
-
-  emacs_value embed_model_run_fn = env->make_function(env, 3, 3,
-                                                     Fembed_model_run,
-                                                     "Run embedding model on given samples.\n\n"
-                                                     "\(fn model-user-pointer samples sample-rate)",
-                                                     NULL);
-  bind_function(env, "esi-core--embed-model-run", embed_model_run_fn);
 
   emacs_value start_background_recording_fn =
       env->make_function(env, 2, 2, Fstart_background_recording,

@@ -1,6 +1,6 @@
 .PHONY: test clean
 
-all: esi-core.so
+all: esi-core.so esi-embed-core.so
 
 test: tests/test-prep
 	cask exec buttercup -L .
@@ -15,13 +15,16 @@ TORCH_FLAGS = -I $(TORCH_DIR)/include -L $(TORCH_DIR)/lib -L ./lib \
 	-ltorch -lc10 -lpthread
 
 clean:
-	rm -f esi-core.so src/esi-embed.o
+	rm -f esi-core.so esi-embed-core.so src/embed/esi-embed.o
 
 tests/test-prep: tests/test-prep.c esi-core.so
 	gcc -lcmocka $(LIBS) -I ./src/ tests/test-prep.c -o $@
 
-esi-core.so: $(wildcard src/*.c) $(wildcard src/*.h) src/esi-embed.o
-	gcc $(LIBS) $(TORCH_FLAGS) -fPIC -pthread -shared $(wildcard src/*.c) src/esi-embed.o -o $@
+esi-core.so: $(wildcard src/*.c) $(wildcard src/*.h)
+	gcc $(LIBS) -fPIC -pthread -shared $(wildcard src/*.c) -o $@
 
-src/esi-embed.o: src/esi-embed.cc
-	g++ -std=c++17 $(TORCH_FLAGS) -fPIC -c src/esi-embed.cc -o $@
+esi-embed-core.so: src/embed/esi-embed-core.c src/embed/esi-embed.o
+	gcc $(LIBS) $(TORCH_FLAGS) -I ./src/ -fPIC -pthread -shared src/embed/esi-embed.o src/embed/esi-embed-core.c -o $@
+
+src/embed/esi-embed.o: src/embed/esi-embed.cc
+	g++ -std=c++17 $(TORCH_FLAGS) -fPIC -c src/embed/esi-embed.cc -o $@
