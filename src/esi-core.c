@@ -221,7 +221,7 @@ static emacs_value Fread_background_recording_buffer(emacs_env *env, ptrdiff_t n
 
 // Stop the ongoing recording altogether and return buffer
 static emacs_value Fstop_background_recording(emacs_env *env, ptrdiff_t n, emacs_value args[], void *data) {
-  struct SoundIoInStream *instream = (struct SoundIoInStream *)(env->get_user_ptr(env, args[0]));
+  struct SoundIoInStream *instream = (struct SoundIoInStream*)(env->get_user_ptr(env, args[0]));
 
   emacs_value nil = env->intern(env, "nil");
   if (!instream) {
@@ -234,6 +234,7 @@ static emacs_value Fstop_background_recording(emacs_env *env, ptrdiff_t n, emacs
   if (env->non_local_exit_check(env) == emacs_funcall_exit_return) {
     stop_background_recording(instream);
     env->set_user_ptr(env, args[0], NULL);
+    env->set_user_finalizer(env, args[0], NULL);
   }
 
   return nil;
