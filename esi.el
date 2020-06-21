@@ -36,11 +36,18 @@
 (require 'esi-record)
 (require 'esi-kaldi)
 
+(defcustom esi-transcriber 'esi-kaldi-transcribe
+  "Default transcriber function.
+
+See `esi-kaldi-transcribe' for input and output types of a valid
+transcriber."
+  :type 'symbol)
+
 ;;;###autoload
 (defun esi-insert-text (transcriber)
   "Insert transcription at point, selecting among ASR
 alternatives."
-  (interactive (list #'esi-kaldi-transcribe))
+  (interactive (list esi-transcriber))
   (let ((texts  (->> (funcall transcriber (esi-record))
                    (alist-get 'results)
                    car
