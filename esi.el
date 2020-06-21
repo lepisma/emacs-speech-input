@@ -43,16 +43,20 @@ See `esi-kaldi-transcribe' for input and output types of a valid
 transcriber."
   :type 'symbol)
 
+(defun esi-transcribe-to-strings (&optional transcriber)
+  "Run default transcriber and return a list of plain strings."
+  (->> (funcall (or transcriber esi-transcriber) (esi-record))
+     (alist-get 'results)
+     car
+     (alist-get 'alternatives)
+     (mapcar (-cut alist-get 'transcript <>))))
+
 ;;;###autoload
 (defun esi-insert-text (transcriber)
   "Insert transcription at point, selecting among ASR
 alternatives."
   (interactive (list esi-transcriber))
-  (let ((texts  (->> (funcall transcriber (esi-record))
-                   (alist-get 'results)
-                   car
-                   (alist-get 'alternatives)
-                   (mapcar (-cut alist-get 'transcript <>)))))
+  (let ((texts (esi-transcribe-to-strings transcriber)))
     (helm :sources (helm-build-sync-source "alternatives"
                      :candidates texts
                      :action `(("Insert" . ,#'insert)))
