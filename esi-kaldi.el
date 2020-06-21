@@ -38,7 +38,7 @@
 
 (defcustom esi-kaldi-serve-config `((config . ((max_alternatives . 10)
                                                (model . "general")
-                                               (language_code . "hi"))))
+                                               (language_code . "en"))))
   "Extra config to be passed in grpc requests.")
 
 (defun esi-kaldi-encode-wav-data (bytes)
