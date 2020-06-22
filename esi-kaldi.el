@@ -41,6 +41,7 @@
                                                (language_code . "en"))))
   "Extra config to be passed in grpc requests.")
 
+
 (defun esi-kaldi-encode-wav-data (bytes)
   "Encoder wavfile to base64 format so that it could be passed to evans."
   (with-temp-buffer
