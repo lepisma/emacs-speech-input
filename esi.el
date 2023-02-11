@@ -3,7 +3,7 @@
 ;; Copyright (c) 2019-2023 Abhinav Tushar
 
 ;; Author: Abhinav Tushar <abhinav@lepisma.xyz>
-;; Version: 0.0.7
+;; Version: 0.1.0
 ;; Package-Requires: ((emacs "27") (dash "2.19.1") (f "0.20.0") (s "1.13.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/lepisma/emacs-speech-input
