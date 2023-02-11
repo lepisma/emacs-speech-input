@@ -37,7 +37,7 @@ For a flight recorder type always on background recording, use the following:
 
   ;; Start background recording with 10 seconds buffer
   (setq instream (esi-core--start-background-recording 16000 10))
-  
+
   ;; Save last 10 seconds of audio to a file
   (let ((pcm-bytes (esi-core--read-background-recording-buffer instream)))
     (f-write-text data 'utf-8 "output-file.pcm"))
@@ -52,17 +52,8 @@ play -t raw -r 16k -c 2 -b 16 -e signed -L output-file.pcm
 #+end_src
 
 ** Transcriptions
-A basic method working to get utterance transcription using [[https://github.com/Vernacular-ai/kaldi-serve][kaldi-serve]] is:
-
-#+begin_src emacs-lisp :exports both :results output
-(print (esi-kaldi-transcribe (esi-record)))
-#+end_src
-
-#+RESULTS:
-: 
-: ((results ((alternatives ((transcript . "हिंदी टाइपिंग हार्ड है") (confidence . 0.95643747) (amScore . -193.49112) (lmScore . 74.76644)) ((transcript . "हिन्दी टाइपिंग हार्ड है") (confidence . 0.95627123) (amScore . -193.64983) (lmScore . 77.205894)) ((transcript . "हिंदी टाइपिंग हार्ड") (confidence . 0.95655245) (amScore . -188.42686) (lmScore . 72.58187)) ((transcript . "हिंदी टाइपिंग हार्ड हैं") (confidence . 0.95626295) (amScore . -190.64734) (lmScore . 76.06722)) ((transcript . "हिंदी टाइपिंग हार्ड हो") (confidence . 0.9561695) (amScore . -192.775) (lmScore . 78.29183)) ((transcript . "हिंदी टाइपिंग हार्ट है") (confidence . 0.95633703) (amScore . -188.41103) (lmScore . 74.07308)) ((transcript . "हिंदी टाइपिंग हार्ड हे") (confidence . 0.9560056) (amScore . -195.36325) (lmScore . 81.71566)) ((transcript . "हिन्दी टाइपिंग हार्ड") (confidence . 0.95634466) (amScore . -188.58557) (lmScore . 75.021324)) ((transcript . "हिंदी टाइपिंग हार्ड ही") (confidence . 0.95604974) (amScore . -193.18002) (lmScore . 80.17074)) ((transcript . "हिंदी टाइपिंग हाड़ है") (confidence . 0.9562279) (amScore . -188.7901) (lmScore . 75.78988))))))
-
-For inserting transcription at point, use ~esi-insert-text~.
+We use [[https://github.com/natrys/whisper.el][whisper.el]] to transcribe and insert text in buffer. Use ~esi-transcribe~
+command for doing that.
 
 ** Speech embeddings
 We rely on pretrained model from [[https://github.com/resemble-ai/Resemblyzer/commit/ca308cb68cb4f14ebfaad81e3dead2c29a67322b][Resemblyzer]]'s repo for getting fixed length

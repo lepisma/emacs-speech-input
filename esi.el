@@ -1,10 +1,10 @@
 ;;; esi.el --- Emacs Speech Input -*- lexical-binding: t; -*-
 
-;; Copyright (c) 2019 Abhinav Tushar
+;; Copyright (c) 2019-2023 Abhinav Tushar
 
-;; Author: Abhinav Tushar <lepisma@fastmail.com>
+;; Author: Abhinav Tushar <abhinav@lepisma.xyz>
 ;; Version: 0.0.7
-;; Package-Requires: ((emacs "26") (dash "2.17.0") (dash-functional "2.17.0") (f "0.20.0") (helm "3.6.2") (s "1.12.0"))
+;; Package-Requires: ((emacs "27") (dash "2.19.1") (f "0.20.0") (s "1.13.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/lepisma/emacs-speech-input
 
@@ -31,37 +31,16 @@
 ;;; Code:
 
 (require 'dash)
-(require 'dash-functional)
-(require 'helm)
 (require 'esi-record)
-(require 'esi-kaldi)
-
-(defcustom esi-transcriber 'esi-kaldi-transcribe
-  "Default transcriber function.
-
-See `esi-kaldi-transcribe' for input and output types of a valid
-transcriber."
-  :type 'symbol)
-
-(defun esi-transcribe-to-strings (&optional transcriber)
-  "Run default transcriber and return a list of plain strings."
-  (->> (funcall (or transcriber esi-transcriber) (esi-record))
-     (alist-get 'results)
-     car
-     (alist-get 'alternatives)
-     (mapcar (-cut alist-get 'transcript <>))))
+(require 'whisper)
 
 ;;;###autoload
-(defun esi-insert-text (transcriber)
-  "Insert transcription at point, selecting among ASR
-alternatives."
-  (interactive (list esi-transcriber))
-  (let ((texts (esi-transcribe-to-strings transcriber)))
-    (helm :sources (helm-build-sync-source "alternatives"
-                     :candidates texts
-                     :action `(("Insert" . ,#'insert)))
-          :buffer "*helm esi*"
-          :prompt "Insert : ")))
+(defun esi-transcribe ()
+  "Record, transcribe, and insert text at point."
+  (interactive)
+  (whisper-run)
+  (read-string "Press RET when done speaking ")
+  (whisper-run))
 
 (provide 'esi)
 
