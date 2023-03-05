@@ -24,8 +24,13 @@
 
 ;;; Code:
 
-(defvar *esi-llm-process* nil
+(require 'org)
+
+(defvar esi-llm--process nil
   "Running process for chatgpt.py script.")
+
+(defvar esi-llm--buffer nil
+  "Buffer for tracking LLM interactions.")
 
 (defcustom esi-llm-api-key nil
   "API key for using the LLM. This is injected in the call to
@@ -36,19 +41,28 @@ process script."
   "Start the LLM process."
   (let ((process-environment (cl-copy-list process-environment)))
     (setenv "OPENAI_API_KEY" esi-llm-api-key)
-    (setq *esi-llm-process*
+    (setq esi-llm--buffer (get-buffer-create "*esi-llm*"))
+    (save-excursion
+      (with-current-buffer esi-llm--buffer
+        (esi-llm-mode)))
+    (setq esi-llm--process
           (make-process :name "esi-llm"
-                        :buffer "*esi-llm*"
+                        :buffer esi-llm--buffer
                         :command '("chatgpt.py")))))
 
 (defun esi-llm-write (text)
-  "Write `text' to the process `*esi-llm-process*'."
-  (process-send-string *esi-llm-process* (concat (string-trim text) "\n")))
+  "Write `text' to the process `esi-llm--process'."
+  (process-send-string esi-llm--process (concat (string-trim text) "\n")))
 
 (defun esi-llm-read ()
-  "Read text from `*esi-llm-process*' and return it.
+  "Read text from `esi-llm--process' and return it.
 
 Nothing happens here right now since we just keep the process buffer open.")
+
+;;;###autoload;
+(define-derived-mode esi-llm-mode org-mode
+  "ESI-LLM"
+  "Major mode for tracking interactions with an LLM.")
 
 (provide 'esi-llm)
 

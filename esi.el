@@ -37,7 +37,7 @@
 ;;;###autoload
 (defun esi-assist ()
   (interactive)
-  (unless *esi-llm-process*
+  (unless esi-llm--process
     (esi-llm-initialize))
   (esi-transcribe #'esi-llm-write))
 
