@@ -31,16 +31,15 @@
 ;;; Code:
 
 (require 'dash)
-(require 'esi-record)
-(require 'whisper)
+(require 'esi-llm)
+(require 'esi-transcribe)
 
 ;;;###autoload
-(defun esi-transcribe ()
-  "Record, transcribe, and insert text at point."
+(defun esi-assist ()
   (interactive)
-  (whisper-run)
-  (read-string "Press RET when done speaking ")
-  (whisper-run))
+  (unless *esi-llm-process*
+    (esi-llm-initialize))
+  (esi-transcribe #'esi-llm-write))
 
 (provide 'esi)
 

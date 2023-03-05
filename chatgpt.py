@@ -7,6 +7,10 @@ import os
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def chatgpt(prompt: str | None = None):
+    """
+    Context-less ChatGPT executor.
+    """
+
     model = "gpt-3.5-turbo"
 
     def _fn(input_str: str) -> str | None:
