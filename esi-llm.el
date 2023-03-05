@@ -43,7 +43,7 @@ process script."
 
 (defun esi-llm-write (text)
   "Write `text' to the process `*esi-llm-process*'."
-  (process-send-string *esi-llm-process* (concat text "\n")))
+  (process-send-string *esi-llm-process* (concat (string-trim text) "\n")))
 
 (defun esi-llm-read ()
   "Read text from `*esi-llm-process*' and return it.
