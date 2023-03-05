@@ -37,15 +37,19 @@
 process script."
   :type 'string)
 
+(defun esi-lm--md-to-org (text)
+  (with-temp-buffer
+    (insert text)
+    (shell-command-on-region (point-min) (point-max) "pandoc -f markdown -t org" t t)
+    (buffer-string)))
+
 (defun esi-llm--filter (proc string)
   (when (buffer-live-p (process-buffer proc))
     (with-current-buffer (process-buffer proc)
       (let ((moving (= (point) (process-mark proc))))
         (save-excursion
           (goto-char (process-mark proc))
-          (org-insert-heading)
-          (insert "::\n")
-          (insert (string-trim string))
+          (insert (esi-lm--md-to-org (string-trim string)))
           (set-marker (process-mark proc) (point)))
         (if moving (goto-char (process-mark proc)))))))
 
@@ -65,7 +69,15 @@ process script."
 
 (defun esi-llm-write (text)
   "Write `text' to the process `esi-llm--process'."
-  (process-send-string esi-llm--process (concat (string-trim text) "\n")))
+  (with-current-buffer (process-buffer esi-llm--process)
+    (save-excursion
+      (goto-char (point-max))
+      (org-insert-heading)
+      (org-insert-time-stamp (current-time) t t)
+      (insert "\n")
+      (insert "#+begin_quote\n" text "\n#+end_quote\n\n")
+      (set-marker (process-mark esi-llm--process) (point)))
+    (process-send-string esi-llm--process (concat (string-trim text) "\n"))))
 
 (defun esi-llm-read ()
   "Read text from `esi-llm--process' and return it.
