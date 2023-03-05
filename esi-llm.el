@@ -37,6 +37,18 @@
 process script."
   :type 'string)
 
+(defun esi-llm--filter (proc string)
+  (when (buffer-live-p (process-buffer proc))
+    (with-current-buffer (process-buffer proc)
+      (let ((moving (= (point) (process-mark proc))))
+        (save-excursion
+          (goto-char (process-mark proc))
+          (org-insert-heading)
+          (insert "::\n")
+          (insert (string-trim string))
+          (set-marker (process-mark proc) (point)))
+        (if moving (goto-char (process-mark proc)))))))
+
 (defun esi-llm-initialize ()
   "Start the LLM process."
   (let ((process-environment (cl-copy-list process-environment)))
@@ -48,7 +60,8 @@ process script."
     (setq esi-llm--process
           (make-process :name "esi-llm"
                         :buffer esi-llm--buffer
-                        :command '("chatgpt.py")))))
+                        :command '("chatgpt.py")
+                        :filter #'esi-llm--filter))))
 
 (defun esi-llm-write (text)
   "Write `text' to the process `esi-llm--process'."
