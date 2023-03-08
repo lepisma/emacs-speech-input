@@ -50,11 +50,15 @@ are like this), convert text to org-mode for better preview."
     (buffer-string)))
 
 (defun esi-llm--filter (proc string)
-  "Filter function for writing the LLM process output."
+  "Filter function for writing the LLM process output. This is
+supposed to put the output after `esi-llm-write' finishes writing
+the prompt metadata."
   (when (buffer-live-p (process-buffer proc))
     (with-current-buffer (process-buffer proc)
       (goto-char (process-mark proc))
+      (setq buffer-read-only nil)
       (insert (esi-llm--md-to-org (string-trim string)))
+      (setq buffer-read-only t)
       (set-marker (process-mark proc) (point)))))
 
 (defun esi-llm--sentinel (proc event)
@@ -91,10 +95,12 @@ are like this), convert text to org-mode for better preview."
     (with-current-buffer (process-buffer esi-llm--process)
       (save-excursion
         (goto-char (point-max))
+        (setq buffer-read-only nil)
         (insert "\n* ")
         (org-insert-time-stamp (current-time) t t)
         (insert "\n")
         (insert "#+begin_quote\n" text "\n#+end_quote\n\n")
+        (setq buffer-read-only t)
         (set-marker (process-mark esi-llm--process) (point)))
       (process-send-string esi-llm--process (concat text "\n")))))
 
@@ -106,7 +112,8 @@ Nothing happens here right now since we just keep the process buffer open.")
 ;;;###autoload;
 (define-derived-mode esi-llm-mode org-mode
   "ESI-LLM"
-  "Major mode for tracking interactions with an LLM.")
+  "Major mode for tracking interactions with an LLM."
+  (setq buffer-read-only t))
 
 (provide 'esi-llm)
 
