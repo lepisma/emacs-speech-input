@@ -4,8 +4,6 @@ import openai
 import os
 
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
 def chatgpt(prompt: str | None = None):
     """
     Context-less ChatGPT executor.
@@ -31,8 +29,15 @@ def chatgpt(prompt: str | None = None):
     return _fn
 
 if __name__ == "__main__":
+
+    api_key = os.getenv("OPENAI_API_KEY")
+
+    if api_key is None:
+        raise ValueError("OPENAI_API_KEY is not set")
+
+    openai.api_key = api_key
+
     chat = chatgpt()
-    print(":: Ready")
     while True:
         try:
             reply = chat(input())
