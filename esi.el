@@ -35,11 +35,15 @@
 (require 'esi-transcribe)
 
 ;;;###autoload
-(defun esi-assist ()
-  (interactive)
+(defun esi-assist (&optional arg)
+  "Trigger LLM assistant. If `arg' is present, prompt for text
+input in minibuffer, otherwise start recording voice input."
+  (interactive "P")
   (unless (esi-llm-running-p)
     (esi-llm-initialize))
-  (esi-transcribe #'esi-llm-write))
+  (if arg
+      (esi-llm-write (read-from-minibuffer "esi-assist: "))
+    (esi-transcribe #'esi-llm-write)))
 
 (provide 'esi)
 

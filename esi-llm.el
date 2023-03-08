@@ -118,7 +118,7 @@ it back to LLM."
   (let ((text (esi-llm--get-prompt)))
     (if (null text)
         (message "No prompt present to be edited!")
-      (esi-llm-write (read-from-minibuffer "ESI: " text)))))
+      (esi-llm-write (read-from-minibuffer "esi-assist: " text)))))
 
 (defun esi-llm-read ()
   "Read text from `esi-llm--process' and return it.
