@@ -104,10 +104,32 @@ the prompt metadata."
         (set-marker (process-mark esi-llm--process) (point)))
       (process-send-string esi-llm--process (concat text "\n")))))
 
+(defun esi-llm--get-prompt ()
+  "Go to the process buffer and return the prompt sent at the
+current point. If nothing is processed yet, return nil"
+  (let ((elem (org-element-at-point)))
+    (when (eq (org-element-type elem) 'paragraph)
+      (string-trim (buffer-substring-no-properties (org-element-property :contents-begin elem) (org-element-property :contents-end elem))))))
+
+(defun esi-llm-reprompt ()
+  "Get currently pointed prompt, offer it for user edit, and send
+it back to LLM."
+  (interactive)
+  (let ((text (esi-llm--get-prompt)))
+    (if (null text)
+        (message "No prompt present to be edited!")
+      (esi-llm-write (read-from-minibuffer "ESI: " text)))))
+
 (defun esi-llm-read ()
   "Read text from `esi-llm--process' and return it.
 
 Nothing happens here right now since we just keep the process buffer open.")
+
+(defvar esi-llm-mode-map
+  (let ((map (make-keymap)))
+    (define-key map (kbd "e") #'esi-llm-reprompt)
+    map)
+  "Keymap for esi-llm major mode.")
 
 ;;;###autoload;
 (define-derived-mode esi-llm-mode org-mode
