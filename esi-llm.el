@@ -104,6 +104,15 @@ the prompt metadata."
         (set-marker (process-mark esi-llm--process) (point)))
       (process-send-string esi-llm--process (concat text "\n")))))
 
+(defun esi-llm-write-region (template)
+  "Take the currently selected region and pass it to the LLM with a
+`template' to embed it in."
+  (interactive (list (read-string "Enter template with %s: " "%s" nil "%s")))
+  (if (not (region-active-p))
+      (message "No region marked")
+    (let ((text (buffer-substring (region-beginning) (region-end))))
+      (esi-llm-write (format template text)))))
+
 (defun esi-llm--get-prompt ()
   "Go to the process buffer and return the prompt sent at the
 current point. If nothing is processed yet, return nil"
