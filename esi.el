@@ -4,7 +4,7 @@
 
 ;; Author: Abhinav Tushar <abhinav@lepisma.xyz>
 ;; Version: 0.2.2
-;; Package-Requires: ((emacs "27") (dash "2.19.1") (f "0.20.0") (s "1.13.0"))
+;; Package-Requires: ((emacs "27") (dash "2.19.1") (f "0.20.0") (hydra "0.15.0") (s "1.13.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/lepisma/emacs-speech-input
 
@@ -33,6 +33,7 @@
 (require 'dash)
 (require 'esi-llm)
 (require 'esi-transcribe)
+(require 'hydra)
 
 ;;;###autoload
 (defun esi-assist (&optional arg)
@@ -44,6 +45,14 @@ input in minibuffer, otherwise start recording voice input."
   (if arg
       (esi-llm-write (read-from-minibuffer "esi-assist: "))
     (esi-transcribe #'esi-llm-write)))
+
+(defun esi-assist-text ()
+  (interactive)
+  (esi-assist t))
+
+(defhydra hydra-esi (global-map "C-c e" :exit t)
+  ("a" esi-assist "Voice assist")
+  ("t" esi-assist-text "Text assist"))
 
 (provide 'esi)
 
