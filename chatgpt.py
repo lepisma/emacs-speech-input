@@ -9,7 +9,7 @@ def chatgpt(prompt: str | None = None):
     Context-less ChatGPT executor.
     """
 
-    model = "gpt-3.5-turbo"
+    model = "gpt-4"
 
     def _fn(input_str: str) -> str | None:
         response = openai.ChatCompletion.create(
