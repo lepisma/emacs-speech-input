@@ -39,6 +39,11 @@
   "Face for transcription that's intermittent and could change
 later.")
 
+(defface esi-dictate-command-face
+  '((t (:inherit company-preview-common)))
+  "Face for transcription that's to be used as correction or
+suggestion instructions, also called commands.")
+
 (define-minor-mode esi-dictate-mode
   "Toggle esi-dictate mode."
   :init-value nil)
