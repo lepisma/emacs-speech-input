@@ -74,9 +74,16 @@ later.")
   "Face for transcription that's to be used as correction or
 suggestion instructions, also called commands.")
 
+(defvar esi-dictate-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-g") 'esi-dictate-stop)
+    map)
+  "Keymap for `esi-dictate-mode'.")
+
 (define-minor-mode esi-dictate-mode
   "Toggle esi-dictate mode."
-  :init-value nil)
+  :init-value nil
+  :keymap esi-dictate-mode-map)
 
 (defun esi-dictate-make-edits (content &optional command)
   "Give `command' to the LLM for making edits to the `content' and
@@ -133,11 +140,15 @@ in current buffer."
                         :filter #'esi-dictate-filter-fn)))
   (setq esi-dictate--llm-provider
         (make-llm-openai :key esi-dictate-openai-key :chat-model "gpt-4-turbo")
-        llm-warn-on-nonfree nil))
+        llm-warn-on-nonfree nil)
+  (esi-dictate-mode)
+  (message "Started dictation mode."))
 
 (defun esi-dictate-stop ()
   (interactive)
-  (esi-dictate--clear-process))
+  (esi-dictate--clear-process)
+  (esi-dictate-mode -1)
+  (message "Stopped dictation mode."))
 
 (provide 'esi-dictate)
 
