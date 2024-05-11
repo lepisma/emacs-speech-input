@@ -27,12 +27,42 @@
 ;;; Code:
 
 (require 'json)
+(require 'llm)
+(require 'llm-openai)
+
 
 (defcustom esi-dictate-dg-api-key nil
-  "API Key for deepgram.")
+  "API Key for Deepgram.")
+
+(defcustom esi-dictate-openai-key (getenv "OPENAI_API_KEY")
+  "API Key for OpenAI")
 
 (defvar esi-dictate--dg-process nil
   "Process holding the deepgram script")
+
+(defvar esi-dictate--llm-provider nil
+  "Variable holding the LLM provider.")
+
+(defvar esi-dictate--command-mode-p nil
+  "Tell whether current utterance has to be taken as command. If
+value is `nil', take utterance as actual utterance. If it's a
+timestamp, any utterance from that time onwards is taken as a ...")
+
+;; + When i continue pressing hotkey
+;;   + keydown -> set the variable with timestamp, keep inserting in command mode.
+;;   + keyup -> set variable back, process via llm, and make edits.
+;; + When i press hotkey
+;;   + keydown -> set the variable with timestamp, keep inserting in command mode.
+;;   + wait for speech final -> ...
+;; + Model based
+;;   + send every utterance to llm for command detection -> it model says commmand
+;;     complete, color it command and act.
+
+(defvar esi-dictate--llm-examples (list (cons "I want to write something that's difficult to transcribe and then try correcting that. Write my name as abcd.\nInstruction: No separate the letters with . please."
+                                              "I want to write something that's difficult to transcribe and then try correcting that. Write my name as a.b.c.d.")
+                                        (cons "hi neumo, what are you doing?\nInstruction: it's n e m o"
+                                              "hi nemo, what are you doing?"))
+  "Example inputs and outputs for LLM few-shot learning.")
 
 (defface esi-dictate-intermittent-face
   '((t (:inherit company-preview)))
@@ -47,6 +77,14 @@ suggestion instructions, also called commands.")
 (define-minor-mode esi-dictate-mode
   "Toggle esi-dictate mode."
   :init-value nil)
+
+(defun esi-dictate-make-edits (content &optional command)
+  "Give `command' to the LLM for making edits to the `content' and
+return new content."
+  (let ((prompt (make-llm-chat-prompt :context "You are a dictation assistant, you will be given transcript by the user and instruction to correct it. You have to return a corrected transcript without changing case of the text unless explicitly asked."
+                                      :examples esi-dictate--llm-examples)))
+    (llm-chat-prompt-append-response prompt (if command (concat content "\nInstruction: " command) content))
+    (llm-chat esi-dictate--llm-provider prompt)))
 
 (defun esi-dictate--clear-process ()
   (when esi-dictate--dg-process
@@ -92,7 +130,10 @@ in current buffer."
           (make-process :name "esi-dictate-dg"
                         :buffer "*esi-dictate-dg*"
                         :command (list "dg.py")
-                        :filter #'esi-dictate-filter-fn))))
+                        :filter #'esi-dictate-filter-fn)))
+  (setq esi-dictate--llm-provider
+        (make-llm-openai :key esi-dictate-openai-key :chat-model "gpt-4-turbo")
+        llm-warn-on-nonfree nil))
 
 (defun esi-dictate-stop ()
   (interactive)

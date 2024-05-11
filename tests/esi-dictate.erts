@@ -1,0 +1,31 @@
+Name: dots
+No-After-Newline: t
+=-=
+I want to write something that's difficult to transcribe and then try correcting that. Write my name as abcd. ||No separate the letters with dots please.
+=-=
+I want to write something that's difficult to transcribe and then try correcting that. Write my name as a.b.c.d.
+=-=-=
+
+Name: spell-1
+No-After-Newline: t
+=-=
+hi neumo, what are you doing? ||it's n e m o
+=-=
+hi nemo, what are you doing?
+=-=-=
+
+Name: spell-2
+No-After-Newline: t
+=-=
+abhinav to sha. ||no it's t u s h a r after abhinav, not to sha
+=-=
+abhinav tushar.
+=-=-=
+
+Name: del
+No-After-Newline: t
+=-=
+Abhinav to Tushar ||remove the to
+=-=
+Abhinav Tushar
+=-=-=

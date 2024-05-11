@@ -4,7 +4,7 @@
 
 ;; Author: Abhinav Tushar <abhinav@lepisma.xyz>
 ;; Version: 0.2.2
-;; Package-Requires: ((emacs "27") (dash "2.19.1") (f "0.20.0") (hydra "0.15.0") (s "1.13.0"))
+;; Package-Requires: ((emacs "27") (dash "2.19.1") (f "0.20.0") (hydra "0.15.0") (llm "0.12.3") (s "1.13.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/lepisma/emacs-speech-input
 
