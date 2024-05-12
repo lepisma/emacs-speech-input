@@ -31,7 +31,7 @@
 (require 'llm-openai)
 
 
-(defcustom esi-dictate-dg-api-key nil
+(defcustom esi-dictate-dg-api-key (getenv "DG_API_KEY")
   "API Key for Deepgram.")
 
 (defcustom esi-dictate-openai-key (getenv "OPENAI_API_KEY")
