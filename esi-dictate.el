@@ -53,16 +53,6 @@ This is used for figuring out correction times.")
 value is `nil', take utterance as actual utterance. If it's a
 timestamp, any utterance from that time onwards is taken as a ...")
 
-;; + When i continue pressing hotkey
-;;   + keydown -> set the variable with timestamp, keep inserting in command mode.
-;;   + keyup -> set variable back, process via llm, and make edits.
-;; + When i press hotkey
-;;   + keydown -> set the variable with timestamp, keep inserting in command mode.
-;;   + wait for speech final -> ...
-;; + Model based
-;;   + send every utterance to llm for command detection -> it model says commmand
-;;     complete, color it command and act.
-
 (defvar esi-dictate--llm-examples (list (cons "I want to write something that's difficult to transcribe and then try correcting that. Write my name as abcd.\nInstruction: No separate the letters with . please."
                                               "I want to write something that's difficult to transcribe and then try correcting that. Write my name as a.b.c.d.")
                                         (cons "hi neumo, what are you doing?\nInstruction: it's n e m o"
