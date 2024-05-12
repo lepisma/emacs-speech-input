@@ -43,6 +43,11 @@
 (defvar esi-dictate--llm-provider nil
   "Variable holding the LLM provider.")
 
+(defvar esi-dictate--mode-start-time nil
+  "Time when the dictation mode started.
+
+This is used for figuring out correction times.")
+
 (defvar esi-dictate--command-mode-p nil
   "Tell whether current utterance has to be taken as command. If
 value is `nil', take utterance as actual utterance. If it's a
@@ -122,9 +127,12 @@ semantics of intermittent results."
       (let ((line (substring existing 0 (match-beginning 0)))
             (rest (substring existing (match-end 0))))
         (setq existing rest)
-        (when (string-prefix-p "Output: " line)
-          (let ((json-string (substring line (length "Output: "))))
-            (esi-dictate-insert (json-parse-string json-string :object-type 'alist))))))
+        (cond ((string-prefix-p "Output: " line)
+               (let ((json-string (substring line (length "Output: "))))
+                 (esi-dictate-insert (json-parse-string json-string :object-type 'alist))))
+              ((string-prefix-p "Press Enter to stop recording" line)
+               (setq esi-dictate--mode-start-time (current-time))
+               (message "Dictation mode ready to use.")))))
     (process-put process 'accumulated-output existing)))
 
 (defun esi-dictate-start ()
@@ -142,7 +150,7 @@ in current buffer."
         (make-llm-openai :key esi-dictate-openai-key :chat-model "gpt-4-turbo")
         llm-warn-on-nonfree nil)
   (esi-dictate-mode)
-  (message "Started dictation mode."))
+  (message "Starting dictation mode."))
 
 (defun esi-dictate-stop ()
   (interactive)
