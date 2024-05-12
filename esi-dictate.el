@@ -48,10 +48,8 @@
 
 This is used for figuring out correction times.")
 
-(defvar esi-dictate--command-mode-p nil
-  "Tell whether current utterance has to be taken as command. If
-value is `nil', take utterance as actual utterance. If it's a
-timestamp, any utterance from that time onwards is taken as a ...")
+(defvar esi-dictate--command-mode-start-time nil
+  "Time when command mode was started.")
 
 (defvar esi-dictate--llm-examples (list (cons "I want to write something that's difficult to transcribe and then try correcting that. Write my name as abcd.\nInstruction: No separate the letters with . please."
                                               "I want to write something that's difficult to transcribe and then try correcting that. Write my name as a.b.c.d.")
@@ -80,6 +78,14 @@ suggestion instructions, also called commands.")
   :init-value nil
   :keymap esi-dictate-mode-map)
 
+(defun esi-dictate-start-command-mode ()
+  (setq esi-dictate--command-mode-start-time (current-time))
+  (message "Value set %s" esi-dictate--command-mode-start-time))
+
+(defun esi-dictate-stop-command-mode ()
+  (setq esi-dictate--command-mode-start-time nil)
+  (message "Stopped command mode"))
+
 (defun esi-dictate-make-edits (content &optional command)
   "Give `command' to the LLM for making edits to the `content' and
 return new content."
@@ -93,12 +99,22 @@ return new content."
     (delete-process esi-dictate--dg-process)
     (setq esi-dictate--dg-process nil)))
 
+(defun esi-dictate-transcription-item-command-p (transcription-item)
+  "Tell if the given `transcription-item' is a command.
+
+It does this by tracking the time when the command hotkey was
+pressed."
+  (when esi-dictate--command-mode-start-time
+    (let ((start-time (time-add esi-dictate--mode-start-time (seconds-to-time (alist-get 'start transcription-item)))))
+      (time-less-p esi-dictate--command-mode-start-time start-time))))
+
 (defun esi-dictate-insert (transcription-item)
   "Insert transcription object in the current buffer preserving the
 semantics of intermittent results."
   (let ((id (alist-get 'start transcription-item))
         (text (alist-get 'transcript (aref (alist-get 'alternatives (alist-get 'channel transcription-item)) 0)))
-        (prev-item (get-text-property (- (point) 1) 'esi-dictate-transcription-item)))
+        (prev-item (get-text-property (- (point) 1) 'esi-dictate-transcription-item))
+        (command-p (esi-dictate-transcription-item-command-p transcription-item)))
     ;; If previous item and current are the same utterance, delete the previous
     ;; item and then insert new one.
     (when (and prev-item (= id (alist-get 'start prev-item)))
@@ -106,9 +122,13 @@ semantics of intermittent results."
     (let ((start (point)))
       (insert text " ")
       (when (eq :false (alist-get 'is_final transcription-item))
-        (overlay-put (make-overlay start (point)) 'face 'esi-dictate-intermittent-face))
+        (overlay-put (make-overlay start (point)) 'face (if command-p 'esi-dictate-command-face 'esi-dictate-intermittent-face)))
       (put-text-property start (point) 'esi-dictate-transcription-item transcription-item)
-      (put-text-property start (point) 'esi-dictate-start start))))
+      (put-text-property start (point) 'esi-dictate-start start)
+
+      ;; Reset the command mode timer when the utterance has ended.
+      (when (and command-p (alist-get 'speech_final transcription-item))
+        (esi-dictate-stop-command-mode)))))
 
 (defun esi-dictate-filter-fn (process string)
   (let ((existing (or (process-get process 'accumulated-output) "")))
@@ -146,6 +166,7 @@ in current buffer."
   (interactive)
   (esi-dictate--clear-process)
   (esi-dictate-mode -1)
+  (esi-dictate-stop-command-mode)
   (message "Stopped dictation mode."))
 
 (provide 'esi-dictate)
