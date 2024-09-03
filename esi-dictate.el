@@ -32,16 +32,14 @@
 
 
 (defcustom esi-dictate-dg-api-key (getenv "DG_API_KEY")
-  "API Key for Deepgram.")
+  "API Key for Deepgram."
+  :type 'string)
 
-(defcustom esi-dictate-openai-key (getenv "OPENAI_API_KEY")
-  "API Key for OpenAI")
+(defcustom esi-dictate-llm-provider (make-llm-openai :key (getenv "OPENAI_API_KEY") :chat-model "gpt-4o-mini")
+  "LLM provider to use for corrections")
 
 (defvar esi-dictate--dg-process nil
   "Process holding the deepgram script")
-
-(defvar esi-dictate--llm-provider nil
-  "Variable holding the LLM provider.")
 
 (defvar esi-dictate--mode-start-time nil
   "Time when the dictation mode started.
@@ -94,7 +92,7 @@ return new content."
   (let ((prompt (make-llm-chat-prompt :context "You are a dictation assistant, you will be given transcript by the user and instruction to correct it. You have to return a corrected transcript without changing case of the text unless explicitly asked."
                                       :examples esi-dictate--llm-examples)))
     (llm-chat-prompt-append-response prompt (if command (concat content "\nInstruction: " command) content))
-    (llm-chat esi-dictate--llm-provider prompt)))
+    (llm-chat esi-dictate-llm-provider prompt)))
 
 (defun esi-dictate--clear-process ()
   (when esi-dictate--dg-process
@@ -169,9 +167,6 @@ in current buffer."
                         :buffer "*esi-dictate-dg*"
                         :command (list "dg.py")
                         :filter #'esi-dictate-filter-fn)))
-  (setq esi-dictate--llm-provider
-        (make-llm-openai :key esi-dictate-openai-key :chat-model "gpt-4o-mini")
-        llm-warn-on-nonfree nil)
   (esi-dictate-mode)
   (message "Starting dictation mode."))
 
