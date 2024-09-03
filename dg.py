@@ -1,4 +1,4 @@
-#!/home/lepisma/.pyenv/shims/python
+#!/usr/bin/env python
 
 import os
 

@@ -53,23 +53,24 @@ This is used for figuring out correction times.")
 
 (defvar esi-dictate--llm-examples (list (cons "I want to write something that's difficult to transcribe and then try correcting that. Write my name as abcd.\nInstruction: No separate the letters with . please."
                                               "I want to write something that's difficult to transcribe and then try correcting that. Write my name as a.b.c.d.")
-                                        (cons "hi neumo, what are you doing?\nInstruction: it's n e m o"
-                                              "hi nemo, what are you doing?"))
+                                        (cons "hi easy, what are you doing?\nInstruction: it's e s i"
+                                              "hi esi, what are you doing?"))
   "Example inputs and outputs for LLM few-shot learning.")
 
 (defface esi-dictate-intermittent-face
-  '((t (:inherit company-preview)))
+  '((t (:inherit font-lock-comment-face)))
   "Face for transcription that's intermittent and could change
 later.")
 
 (defface esi-dictate-command-face
-  '((t (:inherit company-preview-common)))
+  '((t (:inherit font-lock-function-name-face)))
   "Face for transcription that's to be used as correction or
 suggestion instructions, also called commands.")
 
 (defvar esi-dictate-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-g") 'esi-dictate-stop)
+    (define-key map (kbd "C-c c") 'esi-dictate-start-command-mode)
     map)
   "Keymap for `esi-dictate-mode'.")
 
@@ -79,6 +80,7 @@ suggestion instructions, also called commands.")
   :keymap esi-dictate-mode-map)
 
 (defun esi-dictate-start-command-mode ()
+  (interactive)
   (setq esi-dictate--command-mode-start-time (current-time))
   (message "Value set %s" esi-dictate--command-mode-start-time))
 
@@ -104,7 +106,8 @@ return new content."
 
 It does this by tracking the time when the command hotkey was
 pressed."
-  (when esi-dictate--command-mode-start-time
+  ;; Only final transcription have reliable time info for this
+  (when (and esi-dictate--command-mode-start-time (alist-get 'is_final transcription-item))
     (let ((start-time (time-add esi-dictate--mode-start-time (seconds-to-time (alist-get 'start transcription-item)))))
       (time-less-p esi-dictate--command-mode-start-time start-time))))
 
@@ -122,13 +125,23 @@ semantics of intermittent results."
     (let ((start (point)))
       (insert text " ")
       (when (eq :false (alist-get 'is_final transcription-item))
-        (overlay-put (make-overlay start (point)) 'face (if command-p 'esi-dictate-command-face 'esi-dictate-intermittent-face)))
+        (overlay-put (make-overlay start (point)) 'face 'esi-dictate-intermittent-face))
       (put-text-property start (point) 'esi-dictate-transcription-item transcription-item)
       (put-text-property start (point) 'esi-dictate-start start)
 
+      ;; Recolor current and previous item
+      (when command-p
+        (overlay-put (make-overlay start (point)) 'face 'esi-dictate-command-face))
+
       ;; Reset the command mode timer when the utterance has ended.
-      (when (and command-p (alist-get 'speech_final transcription-item))
-        (esi-dictate-stop-command-mode)))))
+      (when (and command-p (not (eq :false (alist-get 'speech_final transcription-item))))
+        (esi-dictate-stop-command-mode)
+        ;; Everything in the current line is taken as the content to work on.
+        (let* ((command text)
+               (content (buffer-substring-no-properties (line-beginning-position) start))
+               (edited (esi-dictate-make-edits content command)))
+          (delete-region (line-beginning-position) (point))
+          (insert edited " "))))))
 
 (defun esi-dictate-filter-fn (process string)
   (let ((existing (or (process-get process 'accumulated-output) "")))
