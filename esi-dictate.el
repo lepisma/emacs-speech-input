@@ -157,7 +157,7 @@ in current buffer."
                         :command (list "dg.py")
                         :filter #'esi-dictate-filter-fn)))
   (setq esi-dictate--llm-provider
-        (make-llm-openai :key esi-dictate-openai-key :chat-model "gpt-4-turbo")
+        (make-llm-openai :key esi-dictate-openai-key :chat-model "gpt-4o-mini")
         llm-warn-on-nonfree nil)
   (esi-dictate-mode)
   (message "Starting dictation mode."))
