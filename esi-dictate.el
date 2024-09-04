@@ -105,10 +105,12 @@ from dictation with speech disfluencies and other artifacts."
   "Fix the last line using the general transcription fixing
 instructions."
   (interactive)
-  (let* ((content (buffer-substring-no-properties (line-beginning-position) (point)))
-         (edited (esi-dictate--fix content)))
-    (delete-region (line-beginning-position) (point))
-    (insert edited)))
+  (let ((start (line-beginning-position))
+        (end (point)))
+    (overlay-put (make-overlay start end) 'face 'esi-dictate-intermittent-face)
+    (let ((edited (esi-dictate--fix (buffer-substring-no-properties start end))))
+      (delete-region start end)
+      (insert edited))))
 
 (defun esi-dictate--clear-process ()
   (when esi-dictate--dg-process
