@@ -27,6 +27,29 @@ could happen in the following ways:
    needed. The system will automatically figure out which utterance is an edit
    suggestion and continue from there.
 
-** Flight mode Recording
+For using the triger based edit you need to put ~dg.py~ (interfaces with Deepgram
+for transcription) in your ~PATH~ somewhere and set up the following:
+
+#+begin_src emacs-lisp
+(use-package esi-dictate
+  :vc (:fetcher github :repo lepisma/emacs-speech-input)
+  :custom
+  (esi-dictate-dg-api-key "Deepgram API Key"
+  (esi-dictate-llm-provider (make-llm-openai :key "OpenAI API Key" :chat-model "gpt-4o-mini"))
+  :bind (:map esi-dictate-mode-map
+              ("C-g" . esi-dictate-stop)
+              ("C-SPC" . esi-dictate-start-command-mode))
+  :config
+  (setq llm-warn-on-nonfree nil))
+#+end_src
+
+Start dictation mode using ~esi-dictate-start~. Use ~esi-dictate-start-command-mode~
+(see above bindings) to trigger edits, and ~esi-dictate-stop~ to exit dictation
+mode.
+
+As of now this uses non-free models for both transcriptions (Deepgram) and edits
+(GPT4o-mini). This will change in the future.
+
+** Flight-mode Recording
 This is available as a dynamic module (~esi-core~) which needs a bit of clean up
 before I document the usage.
