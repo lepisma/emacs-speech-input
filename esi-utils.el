@@ -30,10 +30,6 @@
 (require 'f)
 (require 'cl-lib)
 
-(defun ensure-dir (dir)
-  (unless (file-directory-p dir)
-    (make-directory dir t)))
-
 (defun esi-utils--array-format-line (it)
   "Take a number or vector and return a string representing IT as
 a single line."
