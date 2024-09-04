@@ -1,12 +1,16 @@
-;;; esi-dictate.el --- Dictation Mode -*- lexical-binding: t; -*-
+;;; esi-dictate.el --- Dictation with Real-Time Editing -*- lexical-binding: t; -*-
 
 ;; Copyright (c) 2024 Abhinav Tushar
 
 ;; Author: Abhinav Tushar <abhinav@lepisma.xyz>
+;; Version: 0.0.1
+;; Package-Requires: ((emacs "29") (llm "0.17.2"))
+;; Keywords: speech
+;; URL: https://github.com/lepisma/emacs-speech-input
 
 ;;; Commentary:
 
-;; Dictation Mode
+;; Dictation with Real-Time Editing
 ;; This file is not a part of GNU Emacs.
 
 ;;; License:
@@ -31,11 +35,11 @@
 (require 'llm-openai)
 
 
-(defcustom esi-dictate-dg-api-key (getenv "DG_API_KEY")
+(defcustom esi-dictate-dg-api-key nil
   "API Key for Deepgram."
   :type 'string)
 
-(defcustom esi-dictate-llm-provider (make-llm-openai :key (getenv "OPENAI_API_KEY") :chat-model "gpt-4o-mini")
+(defcustom esi-dictate-llm-provider nil
   "LLM provider to use for corrections")
 
 (defvar esi-dictate--dg-process nil
@@ -65,17 +69,9 @@ later.")
   "Face for transcription that's to be used as correction or
 suggestion instructions, also called commands.")
 
-(defvar esi-dictate-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-g") 'esi-dictate-stop)
-    (define-key map (kbd "C-c c") 'esi-dictate-start-command-mode)
-    map)
-  "Keymap for `esi-dictate-mode'.")
-
 (define-minor-mode esi-dictate-mode
   "Toggle esi-dictate mode."
-  :init-value nil
-  :keymap esi-dictate-mode-map)
+  :init-value nil)
 
 (defun esi-dictate-start-command-mode ()
   (interactive)
