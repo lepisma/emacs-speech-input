@@ -94,6 +94,22 @@ return new content."
     (llm-chat-prompt-append-response prompt (if command (concat content "\nInstruction: " command) content))
     (llm-chat esi-dictate-llm-provider prompt)))
 
+(defun esi-dictate--fix (content)
+  "Perform general fixes to given `content' assuming it's coming
+from dictation with speech disfluencies and other artifacts."
+  (let ((prompt (make-llm-chat-prompt :context "You are a dictation assistant, you will be given transcript by the user with speech disfluencies, minor mistakes, and edits and you have to return a corrected transcript without changing case of the text unless explicitly asked.")))
+    (llm-chat-prompt-append-response prompt content)
+    (llm-chat esi-dictate-llm-provider prompt)))
+
+(defun esi-dictate-fix-last ()
+  "Fix the last line using the general transcription fixing
+instructions."
+  (interactive)
+  (let* ((content (buffer-substring-no-properties (line-beginning-position) (point)))
+         (edited (esi-dictate--fix content)))
+    (delete-region (line-beginning-position) (point))
+    (insert edited)))
+
 (defun esi-dictate--clear-process ()
   (when esi-dictate--dg-process
     (delete-process esi-dictate--dg-process)
