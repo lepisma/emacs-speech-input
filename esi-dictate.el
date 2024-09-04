@@ -65,7 +65,7 @@ This is used for figuring out correction times.")
 later.")
 
 (defface esi-dictate-command-face
-  '((t (:inherit font-lock-function-name-face)))
+  '((t (:inherit font-lock-warning-face)))
   "Face for transcription that's to be used as correction or
 suggestion instructions, also called commands.")
 
@@ -80,8 +80,7 @@ suggestion instructions, also called commands.")
 
 (defun esi-dictate-start-command-mode ()
   (interactive)
-  (setq esi-dictate--command-mode-start-time (current-time))
-  (message "Value set %s" esi-dictate--command-mode-start-time))
+  (setq esi-dictate--command-mode-start-time (current-time)))
 
 (defun esi-dictate-stop-command-mode ()
   (setq esi-dictate--command-mode-start-time nil)
