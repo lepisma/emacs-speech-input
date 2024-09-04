@@ -69,9 +69,14 @@ later.")
   "Face for transcription that's to be used as correction or
 suggestion instructions, also called commands.")
 
+(defvar esi-dictate-mode-map
+  (make-sparse-keymap)
+  "Keymap for `esi-dictate-mode'.")
+
 (define-minor-mode esi-dictate-mode
   "Toggle esi-dictate mode."
-  :init-value nil)
+  :init-value nil
+  :keymap esi-dictate-mode-map)
 
 (defun esi-dictate-start-command-mode ()
   (interactive)
