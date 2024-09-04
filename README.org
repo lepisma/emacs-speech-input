@@ -2,45 +2,31 @@
 
 #+HTML: <img alt="GitHub" src="https://img.shields.io/github/license/lepisma/emacs-speech-input?style=flat-square">
 
-Personal set of tools for involving speech input and output while working with
-Emacs. Once stable, this place should provide a consistent API involving various
-kinds of speech based acts.
+Set of packages for speech and voice inputs in Emacs. Use cases are explained
+next with the packages they are available in:
 
-* Building
-Currently the program has following dependencies:
+** Dictation with Real-Time Editing
+This allows you to input faster[fn::Needs empirical validation.] than simply
+using voice with post-edits or just typing in. ~esi-dictate~ allows blended
+workflows of voice and keyboard input powered via LLMs for real time edits.
 
-1. fftw3
-2. sndfile
-3. cmocka for testing
-4. libsoundio
+To understand dictation in ~esi-dictate~, we need to understand two layers of
+input. First is the /content layer/ that provides most of the content that gets
+written. This happens via real-time voice transcription systems. Second is the
+/edit layer/ that makes changes on what's written via the content layer which
+could happen in the following ways:
 
-Once libraries are present (default-ish paths), run ~make~ to build the
-~esi-core.so~.  Emacs dependencies are managed using cask so you will need to do a
-~cask install~.
+1. /Trigger based voice edits/. Content layer continues to transcribe speech and
+   emit at ~point~. When a key combination is pressed, next utterance---till end
+   of utterance is automatically detected---is taken as an edit suggestion for
+   the content. This is currently supported.
+2. /Keyboard edits/. Similar to previous but the edit suggestions are taken from
+   keyboard entries in parallel. Mostly helpful for correcting typoes for
+   specialized words. This is under development.
+3. /Automated voice edits/. Similar to first, but the key trigger is not
+   needed. The system will automatically figure out which utterance is an edit
+   suggestion and continue from there.
 
-For running tests, do ~make test~.
-
-* Usage
-
-** Recording
-For a flight recorder type always on background recording, use the following:
-
-#+begin_src emacs-lisp
-  (require 'esi-core)
-  (require 'f)
-
-  ;; Start background recording with 10 seconds buffer
-  (setq instream (esi-core--start-background-recording 16000 10))
-
-  ;; Save last 10 seconds of audio to a file
-  (let ((pcm-bytes (esi-core--read-background-recording-buffer instream)))
-    (f-write-text data 'utf-8 "output-file.pcm"))
-
-  (esi-core--stop-background-recording instream)
-#+end_src
-
-The audio can then be played back using something like the following:
-
-#+begin_src shell
-play -t raw -r 16k -c 2 -b 16 -e signed -L output-file.pcm
-#+END_SRC
+** Flight mode Recording
+This is available as a dynamic module (~esi-core~) which needs a bit of clean up
+before I document the usage.
