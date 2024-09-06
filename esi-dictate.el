@@ -42,6 +42,11 @@
 (defcustom esi-dictate-llm-provider nil
   "LLM provider to use for corrections")
 
+(defcustom esi-dictate-speech-final-hook nil
+  "Hook to keep functions that run once the speech utterance is
+finalized from the ASR."
+  :type ':hook)
+
 (defvar esi-dictate--dg-process nil
   "Process holding the deepgram script")
 
@@ -72,6 +77,11 @@ suggestion instructions, also called commands.")
 (defvar esi-dictate-mode-map
   (make-sparse-keymap)
   "Keymap for `esi-dictate-mode'.")
+
+(defvar-local esi-dictate--start-position nil
+  "Tell the location from where the edit and fixup commands should
+start work. If nil, this means start of the line. Otherwise this
+specifies buffer local position.")
 
 (define-minor-mode esi-dictate-mode
   "Toggle esi-dictate mode."
@@ -105,12 +115,13 @@ from dictation with speech disfluencies and other artifacts."
   "Fix the last line using the general transcription fixing
 instructions."
   (interactive)
-  (let ((start (line-beginning-position))
+  (let ((start (or esi-dictate--start-position (line-beginning-position)))
         (end (point)))
     (overlay-put (make-overlay start end) 'face 'esi-dictate-intermittent-face)
     (let ((edited (esi-dictate--fix (buffer-substring-no-properties start end))))
       (delete-region start end)
-      (insert edited))))
+      (insert edited)
+      (setq esi-dictate--start-position (point)))))
 
 (defun esi-dictate--clear-process ()
   (when esi-dictate--dg-process
@@ -193,6 +204,7 @@ in current buffer."
   (esi-dictate--clear-process)
   (esi-dictate-mode -1)
   (esi-dictate-stop-command-mode)
+  (setq esi-dictate--start-position nil)
   (message "Stopped dictation mode."))
 
 (provide 'esi-dictate)
