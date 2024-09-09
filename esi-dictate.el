@@ -111,17 +111,33 @@ from dictation with speech disfluencies and other artifacts."
     (llm-chat-prompt-append-response prompt content)
     (llm-chat esi-dictate-llm-provider prompt)))
 
+(defun esi-dictate--get-bounds ()
+  "Return a cons cell with starting and ending position of the
+region that needs fixing. In the current implementation, this
+goes back to the line's beginning at max, unless you have used a
+mark."
+
+  (if (region-active-p)
+      ;; The user can select a region to be edited too. You can also invoke this
+      ;; workflow by setting mark for the starting point. This will work since
+      ;; any command will have some text added and a set mark will lead to a
+      ;; region.
+      (car (region-bounds))
+    (let ((beg (or esi-dictate--start-position (line-beginning-position)))
+          (end (point)))
+      (cons beg end))))
+
 (defun esi-dictate-fix-last ()
   "Fix the last line using the general transcription fixing
 instructions."
   (interactive)
-  (let ((start (or esi-dictate--start-position (line-beginning-position)))
-        (end (point)))
-    (overlay-put (make-overlay start end) 'face 'esi-dictate-intermittent-face)
-    (let ((edited (esi-dictate--fix (buffer-substring-no-properties start end))))
-      (delete-region start end)
+  (let ((bounds (esi-dictate--get-bounds)))
+    (overlay-put (make-overlay (car bounds) (cdr bounds)) 'face 'esi-dictate-intermittent-face)
+    (let ((edited (esi-dictate--fix (buffer-substring-no-properties (car bounds) (cdr bounds)))))
+      (delete-region (car bounds) (cdr bounds))
       (insert edited)
-      (setq esi-dictate--start-position (point)))))
+      ;; (setq esi-dictate--start-position (point))
+      )))
 
 (defun esi-dictate--clear-process ()
   (when esi-dictate--dg-process
@@ -170,9 +186,10 @@ semantics of intermittent results."
           (esi-dictate-stop-command-mode)
           ;; Everything in the current line is taken as the content to work on.
           (let* ((command text)
-                 (content (buffer-substring-no-properties (line-beginning-position) start))
+                 (bounds (esi-dictate--get-bounds))
+                 (content (buffer-substring-no-properties (car bounds) start))
                  (edited (esi-dictate-make-edits content command)))
-            (delete-region (line-beginning-position) (point))
+            (delete-region (car bounds) (cdr bounds))
             (insert edited " ")))))))
 
 (defun esi-dictate-filter-fn (process string)
