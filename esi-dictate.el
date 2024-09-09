@@ -160,15 +160,20 @@ semantics of intermittent results."
       (when command-p
         (overlay-put (make-overlay start (point)) 'face 'esi-dictate-command-face))
 
-      ;; Reset the command mode timer when the utterance has ended.
-      (when (and command-p (not (eq :false (alist-get 'speech_final transcription-item))))
-        (esi-dictate-stop-command-mode)
-        ;; Everything in the current line is taken as the content to work on.
-        (let* ((command text)
-               (content (buffer-substring-no-properties (line-beginning-position) start))
-               (edited (esi-dictate-make-edits content command)))
-          (delete-region (line-beginning-position) (point))
-          (insert edited " "))))))
+      (when (not (eq :false (alist-get 'speech_final transcription-item)))
+        ;; This is utterance end according to the ASR. In this case, we run a
+        ;; few hooks and, if present, execute explicit commands.
+        (run-hooks 'esi-dictate-speech-final-hook)
+
+        (when command-p
+          ;; Reset the command mode timer when the utterance has ended.
+          (esi-dictate-stop-command-mode)
+          ;; Everything in the current line is taken as the content to work on.
+          (let* ((command text)
+                 (content (buffer-substring-no-properties (line-beginning-position) start))
+                 (edited (esi-dictate-make-edits content command)))
+            (delete-region (line-beginning-position) (point))
+            (insert edited " ")))))))
 
 (defun esi-dictate-filter-fn (process string)
   (let ((existing (or (process-get process 'accumulated-output) "")))
