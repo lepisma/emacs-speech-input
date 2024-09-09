@@ -29,27 +29,29 @@ could happen in the following ways:
    ~esi-dictate-fix-last~.
 
 For using the triger based edit you need to put ~dg.py~ (interfaces with Deepgram
-for transcription) in your ~PATH~ somewhere and set up the following:
+for transcription) in your ~PATH~ somewhere and set up the following recommended
+configuration:
 
 #+begin_src emacs-lisp
   (use-package esi-dictate
     :vc (:fetcher github :repo lepisma/emacs-speech-input)
     :custom
-    (esi-dictate-dg-api-key "Deepgram API Key")
-    (esi-dictate-llm-provider (make-llm-openai :key "OpenAI API Key" :chat-model "gpt-4o-mini"))
+    (esi-dictate-dg-api-key "<DEEPGRAM-API-KEY>")
+    (esi-dictate-llm-provider <llm-provider-using-llm.el>)
+    ; Here is an example configuration for using OpenAI's
+    ; (esi-dictate-llm-provider (make-llm-openai :key "<OPENAI-API-KEY>" :chat-model "gpt-4o-mini"))
     :bind (:map esi-dictate-mode-map
-                ("C-g" . esi-dictate-stop)
-                ("C-SPC" . esi-dictate-start-command-mode)
-                ("C-<return>" . esi-dictate-fix-last))
+                ("C-g" . esi-dictate-stop))
     :config
-    (setq llm-warn-on-nonfree nil))
+    (setq llm-warn-on-nonfree nil)
+    :hook (esi-dictate-speech-final . esi-dictate-fix-last))
 #+end_src
 
 Start dictation mode using ~esi-dictate-start~. Use ~esi-dictate-start-command-mode~
-(see above bindings) to trigger edits, and ~esi-dictate-stop~ to exit dictation
-mode. ~esi-dictate-fix-last~ does general fixes without asking for explicit
-commands and it seems to handle trailing command as well. You can trigger this
-manually at end of utterances till I add a hook for the same.
+to trigger manual command mode (not recommended), and ~esi-dictate-stop~ to exit
+dictation mode. ~esi-dictate-fix-last~ is hooked to utterance end and does general
+fixes without asking for explicit commands. It seems to handle most of the use
+cases well. You can trigger this manually at end of utterances too.
 
 As of now this uses non-free models for both transcriptions (Deepgram) and edits
 (GPT4o-mini). This will change in the future.
