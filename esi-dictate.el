@@ -107,7 +107,7 @@ return new content."
 (defun esi-dictate--fix (content)
   "Perform general fixes to given `content' assuming it's coming
 from dictation with speech disfluencies and other artifacts."
-  (let ((prompt (make-llm-chat-prompt :context "You are a dictation assistant, you will be given transcript by the user with speech disfluencies, minor mistakes, and edits and you have to return a corrected transcript without changing case of the text unless explicitly asked.")))
+  (let ((prompt (make-llm-chat-prompt :context "You are a dictation assistant, you will be given transcript by the user with speech disfluencies, minor mistakes, and edits and you have to return a corrected transcript. The user might give you their stream of consciousness and you have to ensure that you correctly identify a request to edit and don't misfire. You don't have to generate any new information, just ensure fixes in spoken transcripts and edits as asked.")))
     (llm-chat-prompt-append-response prompt content)
     (llm-chat esi-dictate-llm-provider prompt)))
 
