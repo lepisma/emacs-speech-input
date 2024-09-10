@@ -58,6 +58,14 @@ This is used for figuring out correction times.")
 (defvar esi-dictate--command-mode-start-time nil
   "Time when command mode was started.")
 
+(defcustom esi-dictate-fix-examples (list (cons "I wan to write about umm something related to food. My name is name is Abhinav"
+                                                "I want to write about umm something related to food. My name is Abhinav.")
+                                          (cons "Okay we will start. Let's write something about chairs. No not chairs, make it tables."
+                                                "Let's write something about tables."))
+  "Example inputs and outputs for auto edits. Change this to impact
+the behaviour of dictation intelligence."
+  :type '(repeat (cons string string)))
+
 (defvar esi-dictate--llm-examples (list (cons "I want to write something that's difficult to transcribe and then try correcting that. Write my name as abcd.\nInstruction: No separate the letters with . please."
                                               "I want to write something that's difficult to transcribe and then try correcting that. Write my name as a.b.c.d.")
                                         (cons "hi easy, what are you doing?\nInstruction: it's e s i"
@@ -107,7 +115,8 @@ return new content."
 (defun esi-dictate--fix (content)
   "Perform general fixes to given `content' assuming it's coming
 from dictation with speech disfluencies and other artifacts."
-  (let ((prompt (make-llm-chat-prompt :context "You are a dictation assistant, you will be given transcript by the user with speech disfluencies, minor mistakes, and edits and you have to return a corrected transcript. The user might give you their stream of consciousness and you have to ensure that you correctly identify a request to edit and don't misfire. You don't have to generate any new information, just ensure fixes in spoken transcripts and edits as asked.")))
+  (let ((prompt (make-llm-chat-prompt :context "You are a dictation assistant, you will be given transcript by the user with speech disfluencies, minor mistakes, and edits and you have to return a corrected transcript. The user might give you their stream of consciousness and you have to ensure that you correctly identify a request to edit and don't misfire. You don't have to generate any new information, just ensure fixes in spoken transcripts and edits as asked."
+                                      :examples esi-dictate-fix-examples)))
     (llm-chat-prompt-append-response prompt content)
     (llm-chat esi-dictate-llm-provider prompt)))
 
