@@ -50,75 +50,40 @@ finalized from the ASR."
 (defvar esi-dictate--dg-process nil
   "Process holding the deepgram script")
 
-(defvar esi-dictate--mode-start-time nil
-  "Time when the dictation mode started.
-
-This is used for figuring out correction times.")
-
-(defvar esi-dictate--command-mode-start-time nil
-  "Time when command mode was started.")
-
 (defcustom esi-dictate-fix-examples (list (cons "I wan to write about umm something related to food. My name is name is Abhinav"
                                                 "I want to write about umm something related to food. My name is Abhinav.")
                                           (cons "Okay we will start. Let's write something about chairs. No not chairs, make it tables."
-                                                "Let's write something about tables."))
-  "Example inputs and outputs for auto edits. Change this to impact
-the behaviour of dictation intelligence."
+                                                "Let's write something about tables.")
+                                          (cons "I want to write something that's difficult to transcribe and then try correcting that. Write my name as abcd. No separate the letters with . please"
+                                                "I want to write something that's difficult to transcribe and then try correcting that. Write my name as a.b.c.d.")
+                                          (cons "hi easy, what are you doing? It's e s i."
+                                                "hi esi, what are you doing?"))
+  "Example inputs and outputs for few shot learning of auto
+edits. Change this to impact the behaviour of dictation
+intelligence."
   :type '(repeat (cons string string)))
-
-(defvar esi-dictate--llm-examples (list (cons "I want to write something that's difficult to transcribe and then try correcting that. Write my name as abcd.\nInstruction: No separate the letters with . please."
-                                              "I want to write something that's difficult to transcribe and then try correcting that. Write my name as a.b.c.d.")
-                                        (cons "hi easy, what are you doing?\nInstruction: it's e s i"
-                                              "hi esi, what are you doing?"))
-  "Example inputs and outputs for LLM few-shot learning.")
 
 (defface esi-dictate-intermittent-face
   '((t (:inherit font-lock-comment-face)))
-  "Face for transcription that's intermittent and could change
-later.")
-
-(defface esi-dictate-command-face
-  '((t (:inherit font-lock-warning-face)))
-  "Face for transcription that's to be used as correction or
-suggestion instructions, also called commands.")
+  "Face for transcription that's intermittent from ASR and could
+change later.")
 
 (defvar esi-dictate-mode-map
   (make-sparse-keymap)
   "Keymap for `esi-dictate-mode'.")
 
-(defvar-local esi-dictate--start-position nil
-  "Tell the location from where the edit and fixup commands should
-start work. If nil, this means start of the line. Otherwise this
-specifies buffer local position.")
+(defvar-local esi-dictate--fix-start-marker nil
+  "Marker for starting location of the edits and fixes. If nil,
+ this means start of the line. Otherwise this specifies buffer
+ local position.")
 
 (defvar-local esi-dictate--insert-marker nil
-  "Marker to insert new transcriptions in.")
+  "Marker to insert new transcriptions at.")
 
 (define-minor-mode esi-dictate-mode
   "Toggle esi-dictate mode."
   :init-value nil
   :keymap esi-dictate-mode-map)
-
-(defun esi-dictate-start-command-mode ()
-  "Start command mode where utterances are explicitly read as edit
-commands."
-  (interactive)
-  (setq esi-dictate--command-mode-start-time (current-time)))
-
-(defun esi-dictate-stop-command-mode ()
-  (setq esi-dictate--command-mode-start-time nil)
-  (message "Stopped command mode"))
-
-(defun esi-dictate-make-edits (content &optional command)
-  "Give `command' to the LLM for making edits to the `content' and
-return new content.
-
-Also see `#'esi-dictate--fix' which is better than this manual
-workflow."
-  (let ((prompt (make-llm-chat-prompt :context "You are a dictation assistant, you will be given transcript by the user and instruction to correct it. You have to return a corrected transcript without changing case of the text unless explicitly asked."
-                                      :examples esi-dictate--llm-examples)))
-    (llm-chat-prompt-append-response prompt (if command (concat content "\nInstruction: " command) content))
-    (llm-chat esi-dictate-llm-provider prompt)))
 
 (defun esi-dictate--fix (content)
   "Perform general fixes to given `content' assuming it's coming
@@ -128,56 +93,40 @@ from dictation with speech disfluencies and other artifacts."
     (llm-chat-prompt-append-response prompt content)
     (llm-chat esi-dictate-llm-provider prompt)))
 
-(defun esi-dictate--get-bounds ()
-  "Return a cons cell with starting and ending position of the
-region that needs fixing. In the current implementation, this
-goes back to the line's beginning at max, unless you have used a
-mark."
-
-  (if (region-active-p)
-      ;; The user can select a region to be edited too. You can also invoke this
-      ;; workflow by setting mark for the starting point. This will work since
-      ;; any command will have some text added and a set mark will lead to a
-      ;; region.
-      (car (region-bounds))
-    (let ((beg (or esi-dictate--start-position (line-beginning-position)))
-          (end esi-dictate--insert-marker))
-      (cons beg end))))
-
 (defun esi-dictate-fix-last ()
   "Fix the last line using the general transcription fixing
 instructions."
   (interactive)
-  (let ((bounds (esi-dictate--get-bounds)))
-    (overlay-put (make-overlay (car bounds) (cdr bounds)) 'face 'esi-dictate-intermittent-face)
-    (let ((edited (esi-dictate--fix (buffer-substring-no-properties (car bounds) (cdr bounds)))))
-      (delete-region (car bounds) (cdr bounds))
-      (insert edited)
-      ;; (setq esi-dictate--start-position (point))
-      )))
+  (let* ((esi-dictate--fix-start-marker (if (region-active-p) (caar (region-bounds)) esi-dictate--fix-start-marker))
+         (edited (esi-dictate--fix (buffer-substring-no-properties esi-dictate--fix-start-marker esi-dictate--insert-marker)))
+         (current-pos (point)))
+    ;; Have to replicate save-excursion manually. While the replacement text
+    ;; is similar, it's not the same as we do deletes.
+    (delete-region esi-dictate--fix-start-marker esi-dictate--insert-marker)
+    (goto-char esi-dictate--fix-start-marker)
+    (insert edited)
+    (goto-char current-pos)
+    ;; TODO: We would like to track changes but this hasn't been doing good IRL.
+    ;; (set-marker esi-dictate--fix-start-marker (point))
+    (deactivate-mark)))
 
 (defun esi-dictate--clear-process ()
   (when esi-dictate--dg-process
     (delete-process esi-dictate--dg-process)
     (setq esi-dictate--dg-process nil)))
 
-(defun esi-dictate-transcription-item-command-p (transcription-item)
-  "Tell if the given `transcription-item' is a command.
-
-It does this by tracking the time when the command hotkey was
-pressed."
-  ;; Only final transcription have reliable time info for this
-  (when (and esi-dictate--command-mode-start-time (alist-get 'is_final transcription-item))
-    (let ((start-time (time-add esi-dictate--mode-start-time (seconds-to-time (alist-get 'start transcription-item)))))
-      (time-less-p esi-dictate--command-mode-start-time start-time))))
-
 (defun esi-dictate-insert (transcription-item)
   "Insert transcription object in the current buffer preserving the
 semantics of intermittent results."
-  (let ((id (alist-get 'start transcription-item))
-        (text (alist-get 'transcript (aref (alist-get 'alternatives (alist-get 'channel transcription-item)) 0)))
-        (prev-item (get-text-property (- (marker-position esi-dictate--insert-marker) 1) 'esi-dictate-transcription-item))
-        (command-p (esi-dictate-transcription-item-command-p transcription-item)))
+  (let* ((esi-dictate--insert-marker (if (region-active-p)
+                                         (let ((marker (make-marker)))
+                                           (set-marker marker (cdar (region-bounds)))
+                                           (set-marker-insertion-type marker t)
+                                           marker)
+                                       esi-dictate--insert-marker))
+         (id (alist-get 'start transcription-item))
+         (text (alist-get 'transcript (aref (alist-get 'alternatives (alist-get 'channel transcription-item)) 0)))
+         (prev-item (get-text-property (- (marker-position esi-dictate--insert-marker) 1) 'esi-dictate-transcription-item)))
     ;; If previous item and current are the same utterance, delete the previous
     ;; item and then insert new one.
     (when (and prev-item (= id (alist-get 'start prev-item)))
@@ -191,29 +140,14 @@ semantics of intermittent results."
       (put-text-property start (marker-position esi-dictate--insert-marker) 'esi-dictate-transcription-item transcription-item)
       (put-text-property start (marker-position esi-dictate--insert-marker) 'esi-dictate-start start)
 
-      ;; Recolor current and previous item
-      (when command-p
-        (overlay-put (make-overlay start (marker-position esi-dictate--insert-marker)) 'face 'esi-dictate-command-face))
-
       (when (not (eq :false (alist-get 'speech_final transcription-item)))
         ;; This is utterance end according to the ASR. In this case, we run a
         ;; few hooks and, if present, execute explicit commands.
-        (run-hooks 'esi-dictate-speech-final-hook)
-
-        (when command-p
-          ;; Reset the command mode timer when the utterance has ended.
-          (esi-dictate-stop-command-mode)
-          ;; Everything in the current line is taken as the content to work on.
-          (let* ((command text)
-                 (bounds (esi-dictate--get-bounds))
-                 (content (buffer-substring-no-properties (car bounds) start))
-                 (edited (esi-dictate-make-edits content command)))
-            (delete-region (car bounds) (cdr bounds))
-            (save-excursion
-              (goto-char esi-dictate--insert-marker)
-              (insert edited " "))))))))
+        (run-hooks 'esi-dictate-speech-final-hook)))))
 
 (defun esi-dictate-filter-fn (process string)
+  "Filter function to read the output from python script that
+ interacts with Deeepgram."
   (let ((existing (or (process-get process 'accumulated-output) "")))
     (setq existing (concat existing string))
     (while (string-match "\n" existing)
@@ -225,7 +159,7 @@ semantics of intermittent results."
                  (esi-dictate-insert (json-parse-string json-string :object-type 'alist))))
               ((string-prefix-p "Press Enter to stop recording" line)
                (setq esi-dictate--mode-start-time (current-time))
-               (message "Dictation mode ready to use.")))))
+               (message "[esi] Dictation mode ready to use.")))))
     (process-put process 'accumulated-output existing)))
 
 (defun esi-dictate-start ()
@@ -241,18 +175,19 @@ in current buffer."
                         :filter #'esi-dictate-filter-fn)))
   (setq esi-dictate--insert-marker (point-marker))
   (set-marker-insertion-type esi-dictate--insert-marker t)
+  (setq esi-dictate--fix-start-marker (copy-marker esi-dictate--insert-marker nil))
   (esi-dictate-mode)
-  (message "Starting dictation mode."))
+  (message "[esi] Starting dictation mode."))
 
 (defun esi-dictate-stop ()
   (interactive)
   (esi-dictate--clear-process)
   (esi-dictate-mode -1)
-  (esi-dictate-stop-command-mode)
-  (setq esi-dictate--start-position nil)
+  (set-marker esi-dictate--fix-start-marker nil)
+  (setq esi-dictate--fix-start-marker nil)
   (set-marker esi-dictate--insert-marker nil)
   (setq esi-dictate--insert-marker nil)
-  (message "Stopped dictation mode."))
+  (message "[esi] Stopped dictation mode."))
 
 (provide 'esi-dictate)
 
