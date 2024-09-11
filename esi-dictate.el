@@ -91,12 +91,17 @@ suggestion instructions, also called commands.")
 start work. If nil, this means start of the line. Otherwise this
 specifies buffer local position.")
 
+(defvar-local esi-dictate--insert-marker nil
+  "Marker to insert new transcriptions in.")
+
 (define-minor-mode esi-dictate-mode
   "Toggle esi-dictate mode."
   :init-value nil
   :keymap esi-dictate-mode-map)
 
 (defun esi-dictate-start-command-mode ()
+  "Start command mode where utterances are explicitly read as edit
+commands."
   (interactive)
   (setq esi-dictate--command-mode-start-time (current-time)))
 
@@ -106,7 +111,10 @@ specifies buffer local position.")
 
 (defun esi-dictate-make-edits (content &optional command)
   "Give `command' to the LLM for making edits to the `content' and
-return new content."
+return new content.
+
+Also see `#'esi-dictate--fix' which is better than this manual
+workflow."
   (let ((prompt (make-llm-chat-prompt :context "You are a dictation assistant, you will be given transcript by the user and instruction to correct it. You have to return a corrected transcript without changing case of the text unless explicitly asked."
                                       :examples esi-dictate--llm-examples)))
     (llm-chat-prompt-append-response prompt (if command (concat content "\nInstruction: " command) content))
@@ -133,7 +141,7 @@ mark."
       ;; region.
       (car (region-bounds))
     (let ((beg (or esi-dictate--start-position (line-beginning-position)))
-          (end (point)))
+          (end esi-dictate--insert-marker))
       (cons beg end))))
 
 (defun esi-dictate-fix-last ()
@@ -168,22 +176,24 @@ pressed."
 semantics of intermittent results."
   (let ((id (alist-get 'start transcription-item))
         (text (alist-get 'transcript (aref (alist-get 'alternatives (alist-get 'channel transcription-item)) 0)))
-        (prev-item (get-text-property (- (point) 1) 'esi-dictate-transcription-item))
+        (prev-item (get-text-property (- (marker-position esi-dictate--insert-marker) 1) 'esi-dictate-transcription-item))
         (command-p (esi-dictate-transcription-item-command-p transcription-item)))
     ;; If previous item and current are the same utterance, delete the previous
     ;; item and then insert new one.
     (when (and prev-item (= id (alist-get 'start prev-item)))
-      (delete-region (get-text-property (- (point) 1) 'esi-dictate-start) (point)))
-    (let ((start (point)))
-      (insert text " ")
+      (delete-region (get-text-property (- (marker-position esi-dictate--insert-marker) 1) 'esi-dictate-start) (marker-position esi-dictate--insert-marker)))
+    (let ((start (marker-position esi-dictate--insert-marker)))
+      (save-excursion
+        (goto-char start)
+        (insert text " "))
       (when (eq :false (alist-get 'is_final transcription-item))
-        (overlay-put (make-overlay start (point)) 'face 'esi-dictate-intermittent-face))
-      (put-text-property start (point) 'esi-dictate-transcription-item transcription-item)
-      (put-text-property start (point) 'esi-dictate-start start)
+        (overlay-put (make-overlay start (marker-position esi-dictate--insert-marker)) 'face 'esi-dictate-intermittent-face))
+      (put-text-property start (marker-position esi-dictate--insert-marker) 'esi-dictate-transcription-item transcription-item)
+      (put-text-property start (marker-position esi-dictate--insert-marker) 'esi-dictate-start start)
 
       ;; Recolor current and previous item
       (when command-p
-        (overlay-put (make-overlay start (point)) 'face 'esi-dictate-command-face))
+        (overlay-put (make-overlay start (marker-position esi-dictate--insert-marker)) 'face 'esi-dictate-command-face))
 
       (when (not (eq :false (alist-get 'speech_final transcription-item)))
         ;; This is utterance end according to the ASR. In this case, we run a
@@ -199,7 +209,9 @@ semantics of intermittent results."
                  (content (buffer-substring-no-properties (car bounds) start))
                  (edited (esi-dictate-make-edits content command)))
             (delete-region (car bounds) (cdr bounds))
-            (insert edited " ")))))))
+            (save-excursion
+              (goto-char esi-dictate--insert-marker)
+              (insert edited " "))))))))
 
 (defun esi-dictate-filter-fn (process string)
   (let ((existing (or (process-get process 'accumulated-output) "")))
@@ -227,6 +239,8 @@ in current buffer."
                         :buffer "*esi-dictate-dg*"
                         :command (list "dg.py")
                         :filter #'esi-dictate-filter-fn)))
+  (setq esi-dictate--insert-marker (point-marker))
+  (set-marker-insertion-type esi-dictate--insert-marker t)
   (esi-dictate-mode)
   (message "Starting dictation mode."))
 
@@ -236,6 +250,8 @@ in current buffer."
   (esi-dictate-mode -1)
   (esi-dictate-stop-command-mode)
   (setq esi-dictate--start-position nil)
+  (set-marker esi-dictate--insert-marker nil)
+  (setq esi-dictate--insert-marker nil)
   (message "Stopped dictation mode."))
 
 (provide 'esi-dictate)
