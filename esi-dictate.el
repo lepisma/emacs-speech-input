@@ -131,7 +131,7 @@ instructions."
                      (make-overlay (region-beginning) (region-end) nil nil t)
                    (make-overlay (point) (point) nil nil t))))
     (overlay-put overlay 'face 'esi-dictate-context-face)
-    (overlay-put overlay 'after-string "⤳")
+    (overlay-put overlay 'after-string esi-dictate-cursor)
     overlay))
 
 (defun esi-dictate-move-to-region ()
