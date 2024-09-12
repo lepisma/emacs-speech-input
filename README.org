@@ -19,7 +19,7 @@ automatically inferred as having edit suggestions, in which case, the current
 While working, the keyboard cursor is kept free so you can keep making finer
 edits independent of the dictation work.
 
-Some more notes on the design journey are in my blog post here (TBD).
+Some more notes on the design are in my blog post [[https://lepisma.xyz/2024/09/12/emacs-dictation-mode/index.html][here]].
 
 *** Usage
 Presently this systems uses Deepgram via a Python script ~dg.py~ that you need to
