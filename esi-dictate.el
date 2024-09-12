@@ -134,15 +134,17 @@ instructions."
     (overlay-put overlay 'after-string "⤳")
     overlay))
 
-(defun esi-dictate-insert (transcription-item)
-  "Insert transcription object in the current buffer preserving the
-semantics of intermittent results."
-  ;; When region is active, we want the overlay to be reset
+(defun esi-dictate-move-to-region ()
+  "If region is active, reset the overlay to be based on that."
   (when (region-active-p)
     (delete-overlay esi-dictate-context-overlay)
     (setq esi-dictate-context-overlay (esi-dictate-make-context-overlay))
-    (deactivate-mark))
+    (deactivate-mark)))
 
+(defun esi-dictate-insert (transcription-item)
+  "Insert transcription object in the current buffer preserving the
+semantics of intermittent results."
+  (esi-dictate-move-to-region)
   (let* ((id (alist-get 'start transcription-item))
          (text (alist-get 'transcript (aref (alist-get 'alternatives (alist-get 'channel transcription-item)) 0)))
          (prev-item (get-text-property (- (overlay-end esi-dictate-context-overlay) 1) 'esi-dictate-transcription-item)))
@@ -168,8 +170,6 @@ semantics of intermittent results."
       ;; few hooks.
       (when (not (eq :false (alist-get 'speech_final transcription-item)))
         (run-hooks 'esi-dictate-speech-final-hook)))))
-
-My name is Abhinav Tushar. I'm 26 I think there are two things in this world.years old. this.
 
 (defun esi-dictate-filter-fn (process string)
   "Filter function to read the output from python script that
