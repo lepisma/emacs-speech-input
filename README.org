@@ -50,6 +50,13 @@ move the voice cursor, you can create an empty region.
 As of now this uses non-free models for both transcriptions (Deepgram) and edits
 (GPT4o-mini). This will change in the future.
 
+*** Customization
+To improve LLM performance, you can customize the ~esi-dictate-llm-prompt~ and add
+few shot examples in ~esi-dictate-fix-examples~.
+
+For visual improvements, customize ~esi-dictate-cursor~,
+~esi-dictate-intermittent-face~, and ~esi-dictate-context-face~.
+
 ** Flight-mode Recording
 This is available as a dynamic module (~esi-core~) which needs a bit of clean up
 before I document the usage.
