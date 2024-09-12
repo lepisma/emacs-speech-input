@@ -68,17 +68,21 @@ intelligence."
   "Face for transcription that's intermittent from ASR and could
 change later.")
 
+(defface esi-dictate-context-face
+  '((t (:inherit link)))
+  "Face for marking region of text that's under consideration as
+voice context (used in context-overlay). This is the region
+that's send to the LLM for edits.")
+
 (defvar esi-dictate-mode-map
   (make-sparse-keymap)
   "Keymap for `esi-dictate-mode'.")
 
-(defvar-local esi-dictate--fix-start-marker nil
-  "Marker for starting location of the edits and fixes. If nil,
- this means start of the line. Otherwise this specifies buffer
- local position.")
-
-(defvar-local esi-dictate--insert-marker nil
-  "Marker to insert new transcriptions at.")
+(defvar-local esi-dictate-context-overlay nil
+  "Overlay that specifies the region to be used as context
+for corrections. The end position of this is also the position
+where insertion happens from the ASR transcription. We also use
+this to track position of the context.")
 
 (define-minor-mode esi-dictate-mode
   "Toggle esi-dictate mode."
@@ -93,57 +97,79 @@ from dictation with speech disfluencies and other artifacts."
     (llm-chat-prompt-append-response prompt content)
     (llm-chat esi-dictate-llm-provider prompt)))
 
-(defun esi-dictate-fix-last ()
-  "Fix the last line using the general transcription fixing
+(defun esi-dictate-fix-context ()
+  "Fix the context using the general transcription fixing
 instructions."
   (interactive)
-  (let* ((esi-dictate--fix-start-marker (if (region-active-p) (caar (region-bounds)) esi-dictate--fix-start-marker))
-         (edited (esi-dictate--fix (buffer-substring-no-properties esi-dictate--fix-start-marker esi-dictate--insert-marker)))
-         (current-pos (point)))
-    ;; Have to replicate save-excursion manually. While the replacement text
-    ;; is similar, it's not the same as we do deletes.
-    (delete-region esi-dictate--fix-start-marker esi-dictate--insert-marker)
-    (goto-char esi-dictate--fix-start-marker)
+  (let* ((beg-pos (overlay-start esi-dictate-context-overlay))
+         (end-pos (overlay-end esi-dictate-context-overlay))
+         (content (buffer-substring-no-properties beg-pos end-pos))
+         (edited (esi-dictate--fix content))
+         (past-point (point)))
+    (delete-region beg-pos end-pos)
+    (goto-char beg-pos)
     (insert edited)
-    (goto-char current-pos)
-    ;; TODO: We would like to track changes but this hasn't been doing good IRL.
-    ;; (set-marker esi-dictate--fix-start-marker (point))
-    (deactivate-mark)))
+    ;; We replicate save-excursion manually since we do full deletion and
+    ;; replacement.
+    (let ((current-point (point)))
+      (if (<= past-point beg-pos)
+          (goto-char past-point)
+        (if (<= past-point end-pos)
+            (goto-char (min past-point current-point))
+          (goto-char (+ current-point (- past-point end-pos)))))
+      ;; Recover the overlay
+      (move-overlay esi-dictate-context-overlay beg-pos current-point))))
 
 (defun esi-dictate--clear-process ()
   (when esi-dictate--dg-process
     (delete-process esi-dictate--dg-process)
     (setq esi-dictate--dg-process nil)))
 
+(defun esi-dictate-make-context-overlay ()
+  "Make and return new context overlay."
+  (let ((overlay (if (region-active-p)
+                     (make-overlay (region-beginning) (region-end) nil nil t)
+                   (make-overlay (point) (point) nil nil t))))
+    (overlay-put overlay 'face 'esi-dictate-context-face)
+    (overlay-put overlay 'after-string "⤳")
+    overlay))
+
 (defun esi-dictate-insert (transcription-item)
   "Insert transcription object in the current buffer preserving the
 semantics of intermittent results."
-  (let* ((esi-dictate--insert-marker (if (region-active-p)
-                                         (let ((marker (make-marker)))
-                                           (set-marker marker (cdar (region-bounds)))
-                                           (set-marker-insertion-type marker t)
-                                           marker)
-                                       esi-dictate--insert-marker))
-         (id (alist-get 'start transcription-item))
+  ;; When region is active, we want the overlay to be reset
+  (when (region-active-p)
+    (delete-overlay esi-dictate-context-overlay)
+    (setq esi-dictate-context-overlay (esi-dictate-make-context-overlay))
+    (deactivate-mark))
+
+  (let* ((id (alist-get 'start transcription-item))
          (text (alist-get 'transcript (aref (alist-get 'alternatives (alist-get 'channel transcription-item)) 0)))
-         (prev-item (get-text-property (- (marker-position esi-dictate--insert-marker) 1) 'esi-dictate-transcription-item)))
+         (prev-item (get-text-property (- (overlay-end esi-dictate-context-overlay) 1) 'esi-dictate-transcription-item)))
     ;; If previous item and current are the same utterance, delete the previous
-    ;; item and then insert new one.
+    ;; item and then insert new one. This handles intermittent results from the
+    ;; ASR.
     (when (and prev-item (= id (alist-get 'start prev-item)))
-      (delete-region (get-text-property (- (marker-position esi-dictate--insert-marker) 1) 'esi-dictate-start) (marker-position esi-dictate--insert-marker)))
-    (let ((start (marker-position esi-dictate--insert-marker)))
+      (delete-region (get-text-property (- (overlay-end esi-dictate-context-overlay) 1) 'esi-dictate-start) (overlay-end esi-dictate-context-overlay)))
+
+    (let ((insertion-pos (overlay-end esi-dictate-context-overlay)))
       (save-excursion
-        (goto-char start)
+        (goto-char insertion-pos)
         (insert text " "))
       (when (eq :false (alist-get 'is_final transcription-item))
-        (overlay-put (make-overlay start (marker-position esi-dictate--insert-marker)) 'face 'esi-dictate-intermittent-face))
-      (put-text-property start (marker-position esi-dictate--insert-marker) 'esi-dictate-transcription-item transcription-item)
-      (put-text-property start (marker-position esi-dictate--insert-marker) 'esi-dictate-start start)
+        (overlay-put (make-overlay insertion-pos (overlay-end esi-dictate-context-overlay)) 'face 'esi-dictate-intermittent-face))
 
+      ;; Saving properties which will be read later to handle intermittent
+      ;; results.
+      (put-text-property insertion-pos (overlay-end esi-dictate-context-overlay) 'esi-dictate-transcription-item transcription-item)
+      (put-text-property insertion-pos (overlay-end esi-dictate-context-overlay) 'esi-dictate-start insertion-pos)
+
+      ;; This is utterance end according to the ASR. In this case, we run a
+      ;; few hooks.
       (when (not (eq :false (alist-get 'speech_final transcription-item)))
-        ;; This is utterance end according to the ASR. In this case, we run a
-        ;; few hooks and, if present, execute explicit commands.
         (run-hooks 'esi-dictate-speech-final-hook)))))
+
+My name is Abhinav Tushar. I'm 26 I think there are two things in this world.years old. this.
 
 (defun esi-dictate-filter-fn (process string)
   "Filter function to read the output from python script that
@@ -158,7 +184,6 @@ semantics of intermittent results."
                (let ((json-string (substring line (length "Output: "))))
                  (esi-dictate-insert (json-parse-string json-string :object-type 'alist))))
               ((string-prefix-p "Press Enter to stop recording" line)
-               (setq esi-dictate--mode-start-time (current-time))
                (message "[esi] Dictation mode ready to use.")))))
     (process-put process 'accumulated-output existing)))
 
@@ -173,20 +198,17 @@ in current buffer."
                         :buffer "*esi-dictate-dg*"
                         :command (list "dg.py")
                         :filter #'esi-dictate-filter-fn)))
-  (setq esi-dictate--insert-marker (point-marker))
-  (set-marker-insertion-type esi-dictate--insert-marker t)
-  (setq esi-dictate--fix-start-marker (copy-marker esi-dictate--insert-marker nil))
+  (setq esi-dictate-context-overlay (esi-dictate-make-context-overlay))
   (esi-dictate-mode)
-  (message "[esi] Starting dictation mode."))
+  (message "[esi] Starting dictation mode ..."))
 
 (defun esi-dictate-stop ()
   (interactive)
   (esi-dictate--clear-process)
   (esi-dictate-mode -1)
-  (set-marker esi-dictate--fix-start-marker nil)
-  (setq esi-dictate--fix-start-marker nil)
-  (set-marker esi-dictate--insert-marker nil)
-  (setq esi-dictate--insert-marker nil)
+  (when esi-dictate-context-overlay
+    (delete-overlay esi-dictate-context-overlay)
+    (setq esi-dictate-context-overlay nil))
   (message "[esi] Stopped dictation mode."))
 
 (provide 'esi-dictate)
