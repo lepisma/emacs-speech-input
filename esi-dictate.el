@@ -47,6 +47,10 @@
 finalized from the ASR."
   :type ':hook)
 
+(defcustom esi-dictate-cursor "⤳"
+  "Symbol for voice cursor."
+  :type 'string)
+
 (defvar esi-dictate--dg-process nil
   "Process holding the deepgram script")
 
