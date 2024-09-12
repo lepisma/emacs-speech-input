@@ -54,6 +54,10 @@ finalized from the ASR."
 (defvar esi-dictate--dg-process nil
   "Process holding the deepgram script")
 
+(defcustom esi-dictate-llm-prompt "You are a dictation assistant, you will be given transcript by the user with speech disfluencies, minor mistakes, and edits and you have to return a corrected transcript. The user might give you their stream of consciousness and you have to ensure that you correctly identify a request to edit and don't misfire. You don't have to generate any new information, just ensure fixes in spoken transcripts and edits as asked."
+  "System prompt for the LLM editor."
+  :type 'string)
+
 (defcustom esi-dictate-fix-examples (list (cons "I wan to write about umm something related to food. My name is name is Abhinav"
                                                 "I want to write about umm something related to food. My name is Abhinav.")
                                           (cons "Okay we will start. Let's write something about chairs. No not chairs, make it tables."
@@ -96,7 +100,7 @@ this to track position of the context.")
 (defun esi-dictate--fix (content)
   "Perform general fixes to given `content' assuming it's coming
 from dictation with speech disfluencies and other artifacts."
-  (let ((prompt (make-llm-chat-prompt :context "You are a dictation assistant, you will be given transcript by the user with speech disfluencies, minor mistakes, and edits and you have to return a corrected transcript. The user might give you their stream of consciousness and you have to ensure that you correctly identify a request to edit and don't misfire. You don't have to generate any new information, just ensure fixes in spoken transcripts and edits as asked."
+  (let ((prompt (make-llm-chat-prompt :context esi-dictate-llm-prompt
                                       :examples esi-dictate-fix-examples)))
     (llm-chat-prompt-append-response prompt content)
     (llm-chat esi-dictate-llm-provider prompt)))
