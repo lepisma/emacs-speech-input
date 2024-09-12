@@ -6,30 +6,24 @@ Set of packages for speech and voice inputs in Emacs. Use cases are explained
 next with the packages they are available in:
 
 ** Dictation with Real-Time Editing
-This allows you to input faster[fn::Needs empirical validation.] than simply
-using voice with post-edits or just typing in. ~esi-dictate~ allows blended
-workflows of voice and keyboard input powered via LLMs for real time edits.
+~esi-dictate~ is aimed to help you input faster[fn::Needs more work and empirical
+validation.]  than simply using voice with post-edits or typing in. It allows
+blended workflows of voice and keyboard inputs assisted via LLMs for real time
+edits.
 
-To understand dictation in ~esi-dictate~, we need to understand two layers of
-input. First is the /content layer/ that provides most of the content that gets
-written. This happens via real-time voice transcription systems. Second is the
-/edit layer/ that makes changes on what's written via the content layer which
-could happen in the following ways:
+At the very basic, it's a dictation tool allowing real-time edits. Most of the
+content gets inserted in the buffer via voice at a /voice cursor/. Utterances are
+automatically inferred as having edit suggestions, in which case, the current
+/voice context/ (displayed differently) is edited via an LLM.
 
-1. /Trigger based voice edits/. Content layer continues to transcribe speech and
-   emit at ~point~. When a key combination is pressed, next utterance---till end
-   of utterance is automatically detected---is taken as an edit suggestion for
-   the content. This is supported via ~esi-dictate-start-command-mode~.
-2. /Keyboard edits/. Similar to previous but the edit suggestions are taken from
-   keyboard entries in parallel. Mostly helpful for correcting typoes for
-   specialized words. This is under development.
-3. /Automated voice edits/. Similar to first, but the key trigger is not
-   needed. The system will automatically figure out which utterance is an edit
-   suggestion and continue from there. This is supported via
-   ~esi-dictate-fix-last~.
+While working, the keyboard cursor is kept free so you can keep making finer
+edits independent of the dictation work.
 
-For using the triger based edit you need to put ~dg.py~ (interfaces with Deepgram
-for transcription) in your ~PATH~ somewhere and set up the following recommended
+Some more notes on the design journey are in my blog post here (TBD).
+
+*** Usage
+Presently this systems uses Deepgram via a Python script ~dg.py~ that you need to
+put in your ~PATH~ somewhere. Afterwards, you would need to set the following
 configuration:
 
 #+begin_src emacs-lisp
@@ -44,14 +38,14 @@ configuration:
                 ("C-g" . esi-dictate-stop))
     :config
     (setq llm-warn-on-nonfree nil)
-    :hook (esi-dictate-speech-final . esi-dictate-fix-last))
+    :hook (esi-dictate-speech-final . esi-dictate-fix-context))
 #+end_src
 
-Start dictation mode using ~esi-dictate-start~. Use ~esi-dictate-start-command-mode~
-to trigger manual command mode (not recommended), and ~esi-dictate-stop~ to exit
-dictation mode. ~esi-dictate-fix-last~ is hooked to utterance end and does general
-fixes without asking for explicit commands. It seems to handle most of the use
-cases well. You can trigger this manually at end of utterances too.
+Start dictation mode using ~esi-dictate-start~. Use ~esi-dictate-stop~ to exit
+dictation mode. ~esi-dictate-fix-context~ is hooked to utterance end and does
+general fixes without asking for explicit commands. If you mark a region, the
+voice context and cursor will move to the region bounds. If you just need to
+move the voice cursor, you can create an empty region.
 
 As of now this uses non-free models for both transcriptions (Deepgram) and edits
 (GPT4o-mini). This will change in the future.
