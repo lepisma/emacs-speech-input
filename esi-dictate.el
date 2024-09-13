@@ -142,17 +142,14 @@ instructions."
     (overlay-put overlay 'after-string esi-dictate-cursor)
     overlay))
 
-(defun esi-dictate-move-to-region ()
-  "If region is active, reset the overlay to be based on that."
-  (when (region-active-p)
-    (delete-overlay esi-dictate-context-overlay)
-    (setq esi-dictate-context-overlay (esi-dictate-make-context-overlay))
-    (deactivate-mark)))
+(defun esi-dictate-clear-context-overlay ()
+  (when esi-dictate-context-overlay
+    (delete-overlay esi-dictate-context-overlay))
+  (setq esi-dictate-context-overlay nil))
 
 (defun esi-dictate-insert (transcription-item)
   "Insert transcription object in the current buffer preserving the
 semantics of intermittent results."
-  (esi-dictate-move-to-region)
   (let* ((id (alist-get 'start transcription-item))
          (text (alist-get 'transcript (aref (alist-get 'alternatives (alist-get 'channel transcription-item)) 0)))
          (prev-item (get-text-property (- (overlay-end esi-dictate-context-overlay) 1) 'esi-dictate-transcription-item)))
@@ -195,6 +192,13 @@ semantics of intermittent results."
                (message "[esi] Dictation mode ready to use.")))))
     (process-put process 'accumulated-output existing)))
 
+(defun esi-dictate-move-here ()
+  "Move the voice cursor to the current point or, if active, the
+current region."
+  (interactive)
+  (esi-dictate-clear-context-overlay)
+  (setq esi-dictate-context-overlay (esi-dictate-make-context-overlay)))
+
 (defun esi-dictate-start ()
   "Start the real-time transcription process to start inserting text
 in current buffer."
@@ -206,7 +210,7 @@ in current buffer."
                         :buffer "*esi-dictate-dg*"
                         :command (list "dg.py")
                         :filter #'esi-dictate-filter-fn)))
-  (setq esi-dictate-context-overlay (esi-dictate-make-context-overlay))
+  (esi-dictate-move-here)
   (esi-dictate-mode)
   (message "[esi] Starting dictation mode ..."))
 
@@ -214,9 +218,7 @@ in current buffer."
   (interactive)
   (esi-dictate--clear-process)
   (esi-dictate-mode -1)
-  (when esi-dictate-context-overlay
-    (delete-overlay esi-dictate-context-overlay)
-    (setq esi-dictate-context-overlay nil))
+  (esi-dictate-clear-context-overlay)
   (message "[esi] Stopped dictation mode."))
 
 (provide 'esi-dictate)
