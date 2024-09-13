@@ -41,11 +41,12 @@ configuration:
     :hook (esi-dictate-speech-final . esi-dictate-fix-context))
 #+end_src
 
-Start dictation mode using ~esi-dictate-start~. Use ~esi-dictate-stop~ to exit
+Start dictation mode using ~esi-dictate-start~.  Use ~esi-dictate-stop~ to exit
 dictation mode. ~esi-dictate-fix-context~ is hooked to utterance end and does
-general fixes without asking for explicit commands. If you mark a region, the
-voice context and cursor will move to the region bounds. If you just need to
-move the voice cursor, you can create an empty region.
+general fixes without asking for explicit commands. If you mark a region and
+call ~esi-dictate-move-here~, the voice context and cursor will move to the region
+bounds. If you just need to move the voice cursor, call move here function after
+moving point to the appropriate position.
 
 As of now this uses non-free models for both transcriptions (Deepgram) and edits
 (GPT4o-mini). This will change in the future.
