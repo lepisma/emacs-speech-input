@@ -199,6 +199,7 @@ current region."
   (esi-dictate-clear-context-overlay)
   (setq esi-dictate-context-overlay (esi-dictate-make-context-overlay)))
 
+;;;###autoload
 (defun esi-dictate-start ()
   "Start the real-time transcription process to start inserting text
 in current buffer."
