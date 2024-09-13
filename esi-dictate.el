@@ -193,7 +193,8 @@ semantics of intermittent results."
                (let ((json-string (substring line (length "Output: "))))
                  (esi-dictate-insert (json-parse-string json-string :object-type 'alist))))
               ((string-prefix-p "Press Enter to stop recording" line)
-               (message "[esi] Dictation mode ready to use.")))))
+               (message "[esi] Dictation mode ready to use.")
+               (esi-dictate-move-here)))))
     (process-put process 'accumulated-output existing)))
 
 (defun esi-dictate-move-here ()
@@ -215,7 +216,6 @@ in current buffer."
                         :buffer "*esi-dictate-dg*"
                         :command (list "dg.py")
                         :filter #'esi-dictate-filter-fn)))
-  (esi-dictate-move-here)
   (esi-dictate-mode)
   (message "[esi] Starting dictation mode ..."))
 
