@@ -101,26 +101,14 @@ this to track position of the context.")
   :init-value nil
   :keymap esi-dictate-mode-map)
 
-(defun esi-dictate--fix (content)
-  "Perform general fixes to given `content' assuming it's coming
-from dictation with speech disfluencies and other artifacts."
-  (let ((prompt (make-llm-chat-prompt :context esi-dictate-llm-prompt
-                                      :examples esi-dictate-fix-examples)))
-    (llm-chat-prompt-append-response prompt content)
-    (llm-chat esi-dictate-llm-provider prompt)))
-
-(defun esi-dictate-fix-context ()
-  "Fix the context using the general transcription fixing
-instructions."
-  (interactive)
-  (let* ((beg-pos (overlay-start esi-dictate-context-overlay))
-         (end-pos (overlay-end esi-dictate-context-overlay))
-         (content (buffer-substring-no-properties beg-pos end-pos))
-         (edited (esi-dictate--fix content))
-         (past-point (point)))
+(defun esi-dictate--write-fix (edited-content)
+  "Make fixes to the voice context using the given `edited-content'."
+  (let ((beg-pos (overlay-start esi-dictate-context-overlay))
+        (end-pos (overlay-end esi-dictate-context-overlay))
+        (past-point (point)))
     (delete-region beg-pos end-pos)
     (goto-char beg-pos)
-    (insert edited)
+    (insert edited-content)
     ;; We replicate save-excursion manually since we do full deletion and
     ;; replacement.
     (let ((current-point (point)))
@@ -131,6 +119,23 @@ instructions."
           (goto-char (+ current-point (- past-point end-pos)))))
       ;; Recover the overlay
       (move-overlay esi-dictate-context-overlay beg-pos current-point))))
+
+(defun esi-dictate--call-llm (content)
+  "Perform general fixes to given `content' assuming it's coming
+from dictation with speech disfluencies and other artifacts."
+  (let ((prompt (make-llm-chat-prompt :context esi-dictate-llm-prompt
+                                      :examples esi-dictate-fix-examples)))
+    (llm-chat-prompt-append-response prompt content)
+    (llm-chat-async esi-dictate-llm-provider prompt #'esi-dictate--write-fix
+                    (lambda (err err-message) (message "[esi] Error %s: %s" err err-message)))))
+
+(defun esi-dictate-fix-context ()
+  "Fix the context using the general transcription fixing
+instructions."
+  (interactive)
+  (let ((beg-pos (overlay-start esi-dictate-context-overlay))
+        (end-pos (overlay-end esi-dictate-context-overlay)))
+    (esi-dictate--call-llm (buffer-substring-no-properties beg-pos end-pos))))
 
 (defun esi-dictate--clear-process ()
   (when esi-dictate--dg-process
