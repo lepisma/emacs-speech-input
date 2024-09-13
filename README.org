@@ -54,7 +54,7 @@ As of now this uses non-free models for both transcriptions (Deepgram) and edits
 To improve LLM performance, you can customize the ~esi-dictate-llm-prompt~ and add
 few shot examples in ~esi-dictate-fix-examples~.
 
-For visual improvements, customize ~esi-dictate-cursor~,
+For visual improvements, customize ~esi-dictate-cursor~, ~esi-dictate-cursor-face~,
 ~esi-dictate-intermittent-face~, and ~esi-dictate-context-face~.
 
 ** Flight-mode Recording

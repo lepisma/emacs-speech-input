@@ -82,6 +82,10 @@ change later.")
 voice context (used in context-overlay). This is the region
 that's send to the LLM for edits.")
 
+(defface esi-dictate-cursor-face
+  '((t (:inherit default)))
+  "Face to use for the `esi-dictate-cursor'.")
+
 (defvar esi-dictate-mode-map
   (make-sparse-keymap)
   "Keymap for `esi-dictate-mode'.")
@@ -139,7 +143,7 @@ instructions."
                      (make-overlay (region-beginning) (region-end) nil nil t)
                    (make-overlay (point) (point) nil nil t))))
     (overlay-put overlay 'face 'esi-dictate-context-face)
-    (overlay-put overlay 'after-string esi-dictate-cursor)
+    (overlay-put overlay 'after-string (propertize esi-dictate-cursor 'face 'esi-dictate-cursor-face))
     overlay))
 
 (defun esi-dictate-clear-context-overlay ()
