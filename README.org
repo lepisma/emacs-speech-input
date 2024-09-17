@@ -23,8 +23,8 @@ Some more notes on the design are in my blog post [[https://lepisma.xyz/2024/09/
 
 *** Usage
 Presently this systems uses Deepgram via a Python script ~dg.py~ that you need to
-put in your ~PATH~ somewhere. Afterwards, you would need to set the following
-configuration:
+put in your ~PATH~ somewhere. Python >=3.10 is required. Afterwards, you would need
+to set the following configuration:
 
 #+begin_src emacs-lisp
   (use-package esi-dictate
