@@ -163,10 +163,6 @@ semantics of intermittent results."
          (text (alist-get 'transcript (aref (alist-get 'alternatives (alist-get 'channel transcription-item)) 0)))
          (prev-item (when (> (overlay-end esi-dictate-context-overlay) (point-min))  ;; Ensure the overlay isn't at (point-min)
                       (get-text-property (- (overlay-end esi-dictate-context-overlay) 1) 'esi-dictate-transcription-item))))
-
-    ;; Highlighted error - `(- (overlay-end esi-dictate-context-overlay) 1)` will try to subtract 1
-    ;; from point-min (at beginning of buffer)
-    
     ;; If previous item and current are the same utterance, delete the previous
     ;; item and then insert new one. This handles intermittent results from the
     ;; ASR.
